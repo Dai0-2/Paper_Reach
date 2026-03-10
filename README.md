@@ -148,6 +148,7 @@ See [docs/roadmap.md](/home/nas/dailing/paper_reach/docs/roadmap.md) for details
 - publishing guide: [docs/publishing.md](/home/nas/dailing/paper_reach/docs/publishing.md)
 - agent recipes: [examples/agent-recipes/README.md](/home/nas/dailing/paper_reach/examples/agent-recipes/README.md)
 - changelog: [CHANGELOG.md](/home/nas/dailing/paper_reach/CHANGELOG.md)
+- GitHub release body: [docs/github-release-v0.1.0.md](/home/nas/dailing/paper_reach/docs/github-release-v0.1.0.md)
 
 ## Contributing
 
