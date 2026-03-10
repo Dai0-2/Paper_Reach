@@ -1,0 +1,27 @@
+{
+  "topic": "population exposure to floods in China using gridded population",
+  "keywords": [
+    "population exposure",
+    "flood exposure",
+    "China",
+    "gridded population",
+    "WorldPop"
+  ],
+  "inclusion_criteria": [
+    "uses gridded or static population as exposure input",
+    "focuses on flood or water-related disaster exposure",
+    "study area is in China"
+  ],
+  "exclusion_criteria": [
+    "dynamic mobility exposure only",
+    "not a disaster exposure study",
+    "study area outside China only"
+  ],
+  "year_range": [2010, 2026],
+  "max_results": 10,
+  "need_gap_analysis": true,
+  "mode": "auto",
+  "local_paths": [],
+  "require_fulltext_for_selection": false
+}
+

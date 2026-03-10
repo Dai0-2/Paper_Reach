@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkflowOutput",
+  "type": "object",
+  "properties": {
+    "query_summary": {
+      "type": "object"
+    },
+    "screening_candidates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/screeningResult" }
+    },
+    "selected": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/screeningResult" }
+    },
+    "ambiguous": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/screeningResult" }
+    },
+    "rejected": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/screeningResult" }
+    },
+    "gap_analysis": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "recommended_next_queries": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": [
+    "query_summary",
+    "screening_candidates",
+    "selected",
+    "ambiguous",
+    "rejected",
+    "gap_analysis",
+    "recommended_next_queries"
+  ],
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "section": { "type": "string" },
+        "excerpt": { "type": ["string", "null"] },
+        "note": { "type": "string" },
+        "confidence": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        }
+      },
+      "required": ["section", "note", "confidence"]
+    },
+    "screeningResult": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "authors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "year": { "type": ["integer", "null"] },
+        "venue": { "type": ["string", "null"] },
+        "abstract": { "type": ["string", "null"] },
+        "abstract_summary": { "type": ["string", "null"] },
+        "source": { "type": "string" },
+        "url": { "type": ["string", "null"] },
+        "pdf_path": { "type": ["string", "null"] },
+        "download_url": { "type": ["string", "null"] },
+        "relevance_score": { "type": "integer" },
+        "decision": {
+          "type": "string",
+          "enum": ["selected", "ambiguous", "rejected"]
+        },
+        "reasons": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "need_fulltext": { "type": "boolean" },
+        "fulltext_status": {
+          "type": "string",
+          "enum": ["available", "restricted", "not_found", "not_requested", "local_only"]
+        },
+        "access_notes": { "type": ["string", "null"] },
+        "review_ready": { "type": "boolean" },
+        "stage": {
+          "type": "string",
+          "enum": ["screen", "review"]
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "authors",
+        "source",
+        "relevance_score",
+        "decision",
+        "reasons",
+        "evidence",
+        "need_fulltext",
+        "fulltext_status",
+        "review_ready",
+        "stage"
+      ]
+    }
+  }
+}

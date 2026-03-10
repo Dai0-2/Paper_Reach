@@ -1,0 +1,10 @@
+{
+  "id": "local-001",
+  "title": "BDD-100K Driving Attention with Gaze Maps",
+  "authors": ["Example Author"],
+  "year": 2023,
+  "venue": "Local Workshop",
+  "abstract": "This paper studies driving attention on BDD-100K using gaze maps and real traffic scenes.",
+  "url": "https://example.org/local-001"
+}
+

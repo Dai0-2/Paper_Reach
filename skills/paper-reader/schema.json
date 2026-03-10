@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PaperReaderEvidence",
+  "type": "object",
+  "properties": {
+    "section": { "type": "string" },
+    "excerpt": { "type": ["string", "null"] },
+    "note": { "type": "string" },
+    "confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    }
+  },
+  "required": ["section", "note", "confidence"]
+}
+

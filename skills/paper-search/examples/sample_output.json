@@ -1,0 +1,184 @@
+{
+  "query_summary": {
+    "topic": "Driving attention prediction with BDD-100K",
+    "mode": "auto",
+    "total_candidates": 3,
+    "screening_candidates_count": 2,
+    "selected_count": 1,
+    "ambiguous_count": 1,
+    "rejected_count": 1
+  },
+  "screening_candidates": [
+    {
+      "id": "mock-001",
+      "title": "Driving Attention Maps with Human Gaze Supervision in Real Traffic",
+      "authors": ["A. Lee", "B. Kumar"],
+      "year": 2023,
+      "venue": "CVPR Workshops",
+      "abstract": "We study driving attention prediction in real scenes with human gaze maps collected on BDD-100K-like videos.",
+      "abstract_summary": "Abstract strongly suggests relevance and should move to full-text review.",
+      "source": "mock_source",
+      "url": "https://example.org/mock-001",
+      "pdf_path": null,
+      "download_url": null,
+      "relevance_score": 5,
+      "decision": "ambiguous",
+      "reasons": [
+        "Abstract-level screening suggests the paper is plausible and should move to full-text review."
+      ],
+      "evidence": [
+        {
+          "section": "abstract",
+          "excerpt": "human gaze maps collected on BDD-100K-like videos",
+          "note": "Supports screening-stage relevance.",
+          "confidence": "low"
+        }
+      ],
+      "need_fulltext": true,
+      "fulltext_status": "not_requested",
+      "access_notes": null,
+      "review_ready": true,
+      "stage": "screen"
+    },
+    {
+      "id": "mock-002",
+      "title": "Attention Prediction for Driving Videos",
+      "authors": ["C. Zhang"],
+      "year": 2022,
+      "venue": "ArXiv",
+      "abstract": "We predict attention in driving videos using multimodal inputs.",
+      "abstract_summary": "Driving task is relevant, but supervision details are unclear.",
+      "source": "mock_source",
+      "url": "https://example.org/mock-002",
+      "pdf_path": null,
+      "download_url": null,
+      "relevance_score": 3,
+      "decision": "ambiguous",
+      "reasons": [
+        "Only partial abstract-level support is available; keep for conservative review."
+      ],
+      "evidence": [
+        {
+          "section": "abstract",
+          "excerpt": "predict attention in driving videos",
+          "note": "Topic match is present, but evidence remains incomplete.",
+          "confidence": "low"
+        }
+      ],
+      "need_fulltext": true,
+      "fulltext_status": "not_requested",
+      "access_notes": null,
+      "review_ready": true,
+      "stage": "screen"
+    }
+  ],
+  "selected": [
+    {
+      "id": "mock-001",
+      "title": "Driving Attention Maps with Human Gaze Supervision in Real Traffic",
+      "authors": ["A. Lee", "B. Kumar"],
+      "year": 2023,
+      "venue": "CVPR Workshops",
+      "abstract": "We study driving attention prediction in real scenes with human gaze maps collected on BDD-100K-like videos.",
+      "abstract_summary": "Abstract mentions driving attention, gaze supervision, and real-scene data.",
+      "source": "mock_source",
+      "url": "https://example.org/mock-001",
+      "pdf_path": null,
+      "download_url": null,
+      "relevance_score": 9,
+      "decision": "selected",
+      "reasons": [
+        "Abstract matches topic and supervision requirement.",
+        "No exclusion criterion is triggered."
+      ],
+      "evidence": [
+        {
+          "section": "abstract",
+          "excerpt": "human gaze maps collected on BDD-100K-like videos",
+          "note": "Supports gaze supervision and real driving scenes.",
+          "confidence": "medium"
+        }
+      ],
+      "need_fulltext": false,
+      "fulltext_status": "not_found",
+      "access_notes": "No direct download URL is available.",
+      "review_ready": true,
+      "stage": "review"
+    }
+  ],
+  "ambiguous": [
+    {
+      "id": "mock-002",
+      "title": "Attention Prediction for Driving Videos",
+      "authors": ["C. Zhang"],
+      "year": 2022,
+      "venue": "ArXiv",
+      "abstract": "We predict attention in driving videos using multimodal inputs.",
+      "abstract_summary": "Driving task is relevant, but supervision details are unclear.",
+      "source": "mock_source",
+      "url": "https://example.org/mock-002",
+      "pdf_path": null,
+      "download_url": null,
+      "relevance_score": 6,
+      "decision": "ambiguous",
+      "reasons": [
+        "Abstract suggests topic relevance.",
+        "Need full text to verify explicit attention supervision."
+      ],
+      "evidence": [
+        {
+          "section": "abstract",
+          "excerpt": "predict attention in driving videos",
+          "note": "Topic match is present, but evidence remains incomplete.",
+          "confidence": "low"
+        }
+      ],
+      "need_fulltext": true,
+      "fulltext_status": "not_found",
+      "access_notes": "No direct download URL is available.",
+      "review_ready": true,
+      "stage": "review"
+    }
+  ],
+  "rejected": [
+    {
+      "id": "mock-003",
+      "title": "Behavior Prediction for Autonomous Driving",
+      "authors": ["D. Smith"],
+      "year": 2024,
+      "venue": "IV",
+      "abstract": "We predict driving maneuvers from egocentric video.",
+      "abstract_summary": "Behavior prediction focus triggers exclusion criteria.",
+      "source": "mock_source",
+      "url": "https://example.org/mock-003",
+      "pdf_path": null,
+      "download_url": null,
+      "relevance_score": 2,
+      "decision": "rejected",
+      "reasons": [
+        "Pure behavior prediction aligns with exclusion criteria."
+      ],
+      "evidence": [
+        {
+          "section": "abstract",
+          "excerpt": "predict driving maneuvers",
+          "note": "This is behavior prediction, not explicit attention supervision.",
+          "confidence": "medium"
+        }
+      ],
+      "need_fulltext": false,
+      "fulltext_status": "not_requested",
+      "access_notes": null,
+      "review_ready": false,
+      "stage": "screen"
+    }
+  ],
+  "gap_analysis": [
+    "Few candidates explicitly mention BDD-100K by name.",
+    "Supervision details are often unclear at abstract level."
+  ],
+  "recommended_next_queries": [
+    "BDD-100K gaze supervision driving attention",
+    "driving attention map real scene eye tracking"
+  ]
+}

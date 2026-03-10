@@ -1,0 +1,27 @@
+{
+  "topic": "earthquake population risk assessment in China using static population data",
+  "keywords": [
+    "earthquake exposure",
+    "population risk",
+    "China",
+    "static population",
+    "gridded population"
+  ],
+  "inclusion_criteria": [
+    "uses static or gridded population in earthquake risk or exposure assessment",
+    "study area is in China",
+    "focuses on hazard exposure or risk assessment"
+  ],
+  "exclusion_criteria": [
+    "building fragility only",
+    "not a population exposure study",
+    "study area outside China only"
+  ],
+  "year_range": [2010, 2026],
+  "max_results": 10,
+  "need_gap_analysis": true,
+  "mode": "auto",
+  "local_paths": [],
+  "require_fulltext_for_selection": false
+}
+

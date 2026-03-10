@@ -1,0 +1,26 @@
+{
+  "topic": "Driving attention prediction with BDD-100K",
+  "keywords": [
+    "BDD-100K",
+    "driving attention",
+    "gaze prediction",
+    "attention map"
+  ],
+  "inclusion_criteria": [
+    "uses attention map or gaze supervision",
+    "preferably real driving scene",
+    "preferably after 2021"
+  ],
+  "exclusion_criteria": [
+    "generic saliency detection only",
+    "no explicit attention supervision",
+    "pure behavior prediction"
+  ],
+  "year_range": [2021, 2026],
+  "max_results": 10,
+  "need_gap_analysis": true,
+  "mode": "auto",
+  "local_paths": [],
+  "require_fulltext_for_selection": false
+}
+

@@ -1,0 +1,4 @@
+Driving attention prediction on BDD-100K with human gaze supervision.
+We train an attention prediction model on real driving scenes.
+The method uses explicit attention maps derived from gaze supervision.
+

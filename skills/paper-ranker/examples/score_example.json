@@ -1,0 +1,17 @@
+{
+  "id": "mock-001",
+  "scores": {
+    "topic_relevance": 3,
+    "method_match": 2,
+    "dataset_match": 1,
+    "supervision_match": 2,
+    "evidence_confidence": 1,
+    "total": 9
+  },
+  "decision": "selected",
+  "reasons": [
+    "Strong topic match for driving attention prediction.",
+    "Abstract mentions gaze supervision.",
+    "Evidence confidence is moderate rather than high because no full text was parsed."
+  ]
+}

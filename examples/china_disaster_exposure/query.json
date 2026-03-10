@@ -1,0 +1,28 @@
+{
+  "topic": "disaster exposure assessment using static population in China",
+  "keywords": [
+    "static population",
+    "disaster exposure",
+    "China",
+    "population exposure",
+    "flood exposure",
+    "earthquake exposure"
+  ],
+  "inclusion_criteria": [
+    "uses static population data or gridded population as exposure input",
+    "assesses disaster exposure or risk exposure",
+    "study area is in China"
+  ],
+  "exclusion_criteria": [
+    "dynamic population only",
+    "not a disaster exposure study",
+    "study area outside China only"
+  ],
+  "year_range": [2010, 2026],
+  "max_results": 12,
+  "need_gap_analysis": true,
+  "mode": "online",
+  "local_paths": [],
+  "require_fulltext_for_selection": false
+}
+

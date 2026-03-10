@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "paper-reach"
+version = "0.1.0"
+description = "Give your AI agent a rigorous literature review workflow."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Paper-Reach contributors" }
+]
+dependencies = [
+  "pydantic>=2.6,<3",
+  "requests>=2.31,<3",
+  "typer>=0.12,<1"
+]
+
+[project.optional-dependencies]
+pdf = [
+  "pymupdf>=1.24,<2"
+]
+dev = [
+  "pytest>=8.0,<9"
+]
+
+[project.scripts]
+paper-reach = "paper_reach.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["paper_reach*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+

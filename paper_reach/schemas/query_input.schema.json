@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QueryInput",
+  "type": "object",
+  "properties": {
+    "topic": { "type": "string" },
+    "keywords": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "inclusion_criteria": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "exclusion_criteria": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "year_range": {
+      "type": "array",
+      "items": { "type": "integer" },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "max_results": { "type": "integer", "minimum": 1 },
+    "need_gap_analysis": { "type": "boolean" },
+    "mode": {
+      "type": "string",
+      "enum": ["online", "offline", "auto"]
+    },
+    "local_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "require_fulltext_for_selection": { "type": "boolean" }
+  },
+  "required": [
+    "topic",
+    "keywords",
+    "inclusion_criteria",
+    "exclusion_criteria",
+    "year_range",
+    "max_results",
+    "need_gap_analysis",
+    "mode",
+    "require_fulltext_for_selection"
+  ]
+}
+
