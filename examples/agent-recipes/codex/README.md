@@ -8,6 +8,14 @@ This recipe shows the intended way to use Paper-Reach from a Codex-style coding 
 - the agent can read `AGENTS.md`
 - the package is installed in the environment
 
+If your Codex host scans installed skills, also run:
+
+```bash
+bash scripts/sync.sh
+```
+
+Paper-Reach ships Codex/OpenAI-style discovery metadata in [agents/openai.yaml](/home/nas/dailing/paper_reach/agents/openai.yaml).
+
 ## Minimal Flow
 
 1. read [AGENTS.md](/home/nas/dailing/paper_reach/AGENTS.md)
@@ -43,4 +51,3 @@ paper-reach run \
 ## Why This Pattern
 
 The Codex-side prompt stays small. The real workflow lives in the CLI and schemas, which makes behavior more stable and testable.
-

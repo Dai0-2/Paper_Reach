@@ -10,7 +10,15 @@ from pydantic import BaseModel, Field, field_validator
 Mode = Literal["online", "offline", "auto"]
 Decision = Literal["selected", "ambiguous", "rejected"]
 Confidence = Literal["low", "medium", "high"]
-FulltextStatus = Literal["available", "restricted", "not_found", "not_requested", "local_only"]
+FulltextStatus = Literal[
+    "available",
+    "restricted",
+    "not_found",
+    "not_requested",
+    "local_only",
+    "challenge",
+    "login_required",
+]
 Stage = Literal["screen", "review"]
 
 
@@ -21,6 +29,9 @@ class QueryInput(BaseModel):
     keywords: List[str] = Field(default_factory=list)
     inclusion_criteria: List[str] = Field(default_factory=list)
     exclusion_criteria: List[str] = Field(default_factory=list)
+    must_include: List[str] = Field(default_factory=list)
+    soft_include: List[str] = Field(default_factory=list)
+    must_exclude: List[str] = Field(default_factory=list)
     year_range: Tuple[int, int] = (2000, 2100)
     max_results: int = 20
     need_gap_analysis: bool = True
@@ -94,6 +105,8 @@ class ScreeningResult(BaseModel):
     decision: Decision
     reasons: List[str] = Field(default_factory=list)
     evidence: List[PaperEvidence] = Field(default_factory=list)
+    screening_dimensions: Dict[str, int] = Field(default_factory=dict)
+    abstract_findings: Dict[str, List[str]] = Field(default_factory=dict)
     need_fulltext: bool = False
     fulltext_status: FulltextStatus = "not_requested"
     access_notes: Optional[str] = None

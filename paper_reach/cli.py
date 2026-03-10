@@ -9,8 +9,9 @@ import typer
 
 from . import __version__
 from .config import DEFAULT_CONFIG
+from .fetchers.utils import FetchContext
 from .io_utils import load_query, print_json, write_json
-from .models import PaperMetadata, QueryInput
+from .models import QueryInput
 from .parsers.pymupdf_parser import fitz
 from .workflow import (
     available_channels,
@@ -32,6 +33,8 @@ def run_command(
     local_path: Optional[List[Path]] = typer.Option(None, "--local-path", help="Additional local paths."),
     no_fetch_fulltext: bool = typer.Option(False, "--no-fetch-fulltext", help="Skip the fetch stage."),
     download_dir: Optional[Path] = typer.Option(None, "--download-dir", help="Directory for downloaded full texts."),
+    cookie_file: Optional[Path] = typer.Option(None, "--cookie-file", exists=True, readable=True, help="Cookie file for user-authorized sessions."),
+    header_file: Optional[Path] = typer.Option(None, "--header-file", exists=True, readable=True, help="JSON header file for user-authorized sessions."),
     high_recall: bool = typer.Option(False, "--high-recall", help="Use broader multi-query retrieval."),
     retrieval_limit: Optional[int] = typer.Option(None, "--retrieval-limit", help="Maximum initial retrieval size."),
 ) -> None:
@@ -44,6 +47,7 @@ def run_command(
         download_dir=download_dir,
         high_recall=high_recall,
         retrieval_limit=retrieval_limit,
+        fetch_context=_fetch_context(cookie_file, header_file),
     )
     write_json(output, result.model_dump(mode="json"))
     typer.echo(f"Wrote result to {output}")
@@ -79,6 +83,8 @@ def fetch_fulltext_command(
     channel: Optional[List[str]] = typer.Option(None, "--channel", help="Explicit channel names."),
     local_path: Optional[List[Path]] = typer.Option(None, "--local-path", help="Additional local paths."),
     download_dir: Optional[Path] = typer.Option(None, "--download-dir", help="Directory for downloaded full texts."),
+    cookie_file: Optional[Path] = typer.Option(None, "--cookie-file", exists=True, readable=True, help="Cookie file for user-authorized sessions."),
+    header_file: Optional[Path] = typer.Option(None, "--header-file", exists=True, readable=True, help="JSON header file for user-authorized sessions."),
     high_recall: bool = typer.Option(False, "--high-recall", help="Use broader multi-query retrieval."),
     retrieval_limit: Optional[int] = typer.Option(None, "--retrieval-limit", help="Maximum initial retrieval size."),
 ) -> None:
@@ -90,7 +96,11 @@ def fetch_fulltext_command(
         high_recall=high_recall,
         retrieval_limit=retrieval_limit,
     )
-    fetched = fetch_fulltexts(papers, download_dir=download_dir)
+    fetched = fetch_fulltexts(
+        papers,
+        download_dir=download_dir,
+        context=_fetch_context(cookie_file, header_file),
+    )
     result = review_workflow(query, screen_output=screen_output, papers=fetched)
     write_json(output, result.model_dump(mode="json"))
     typer.echo(f"Wrote fetched review result to {output}")
@@ -126,6 +136,7 @@ def doctor_command() -> None:
         "version": __version__,
         "channels": sorted(available_channels().keys()),
         "pdf_parser_available": fitz is not None,
+        "authenticated_fetch_supported": True,
         "default_config": DEFAULT_CONFIG.as_dict(),
         "workflow_stages": ["screen", "fetch-fulltext", "review", "run"],
     }
@@ -176,6 +187,12 @@ def _load_query_with_overrides(
         merged_paths = list(query.local_paths) + [str(item) for item in local_path]
         query = query.model_copy(update={"local_paths": merged_paths})
     return query
+
+
+def _fetch_context(cookie_file: Optional[Path], header_file: Optional[Path]) -> FetchContext | None:
+    if cookie_file is None and header_file is None:
+        return None
+    return FetchContext(cookie_file=cookie_file, header_file=header_file)
 
 
 if __name__ == "__main__":

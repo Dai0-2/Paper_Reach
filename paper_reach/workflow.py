@@ -12,10 +12,16 @@ from .channels.local_files import LocalFilesChannel
 from .channels.mock_source import MockSourceChannel
 from .channels.openalex import OpenAlexChannel
 from .fetchers.open_access import OpenAccessFetcher
+from .fetchers.utils import FetchContext
 from .models import PaperEvidence, PaperMetadata, QueryInput, ScreeningResult, WorkflowOutput
 from .parsers.pymupdf_parser import PyMuPDFParser
 from .parsers.simple_text_parser import SimpleTextParser
-from .retrieval import screen_dimension_scores
+from .retrieval import (
+    build_search_plan,
+    evaluate_criteria_match,
+    extract_abstract_findings,
+    screen_dimension_scores,
+)
 from .ranking.rubric import score_paper
 
 
@@ -37,6 +43,7 @@ def run_workflow(
     download_dir: Path | None = None,
     high_recall: bool = False,
     retrieval_limit: int | None = None,
+    fetch_context: FetchContext | None = None,
 ) -> WorkflowOutput:
     """Run screen, optional fetch, and review as a single command."""
     screen_output, screened_papers = screen_workflow(
@@ -47,7 +54,11 @@ def run_workflow(
     )
     review_input = screened_papers
     if fetch_fulltext:
-        review_input = fetch_fulltexts(screened_papers, download_dir=download_dir)
+        review_input = fetch_fulltexts(
+            screened_papers,
+            download_dir=download_dir,
+            context=fetch_context,
+        )
     return review_workflow(query, screen_output=screen_output, papers=review_input)
 
 
@@ -91,6 +102,7 @@ def screen_workflow(
             "topic": query.topic,
             "mode": query.mode,
             "channels_used": names,
+            "search_plan": build_search_plan(query, high_recall=high_recall),
             "total_candidates": len(candidates),
             "high_recall": high_recall,
             "retrieval_limit": retrieval_limit or len(candidates),
@@ -110,6 +122,7 @@ def fetch_fulltexts(
     papers: Sequence[PaperMetadata],
     *,
     download_dir: Path | None = None,
+    context: FetchContext | None = None,
 ) -> List[PaperMetadata]:
     """Attempt to fetch full text for screened papers."""
     fetcher = OpenAccessFetcher()
@@ -122,7 +135,7 @@ def fetch_fulltexts(
                 paper.fulltext_status = "local_only"
             updated.append(_attach_local_text(paper))
             continue
-        updated.append(fetcher.fetch(paper, download_dir=download_dir))
+        updated.append(fetcher.fetch(paper, download_dir=download_dir, context=context))
     return updated
 
 
@@ -158,6 +171,8 @@ def review_workflow(
             decision=ranking.decision,
             reasons=ranking.reasons,
             evidence=paper.evidence,
+            screening_dimensions={},
+            abstract_findings={},
             need_fulltext=need_fulltext,
             fulltext_status=paper.fulltext_status,
             access_notes=paper.access_notes,
@@ -176,6 +191,7 @@ def review_workflow(
         "topic": query.topic,
         "mode": query.mode,
         "channels_used": screen_output.query_summary.get("channels_used", []),
+        "search_plan": screen_output.query_summary.get("search_plan", {}),
         "total_candidates": screen_output.query_summary.get("total_candidates", 0),
         "screening_candidates_count": len(screen_output.screening_candidates),
         "selected_count": len(selected),
@@ -262,13 +278,29 @@ def _screen_paper(paper: PaperMetadata, query: QueryInput) -> ScreeningResult:
     title_only = not screening_text
     exclusion_hit = _screen_exclusions(combined, query.exclusion_criteria)
     dimension_scores = screen_dimension_scores(combined, query)
+    findings = extract_abstract_findings(screening_text or paper.title, query)
+    criteria_match = evaluate_criteria_match(screening_text or paper.title, query)
+    findings.update(
+        {
+            "matched_must_include": criteria_match["matched_must_include"],
+            "missing_must_include": criteria_match["missing_must_include"],
+            "matched_soft_include": criteria_match["matched_soft_include"],
+        }
+    )
     relevance_hits = sum(dimension_scores.values())
-    if exclusion_hit:
+    if exclusion_hit or criteria_match["violated_exclude"]:
         decision = "rejected"
-        reasons = [f"Screening rejected the paper because it matched exclusion criterion: {exclusion_hit}."]
+        violated = exclusion_hit or criteria_match["violated_exclude"][0]
+        reasons = [f"Screening rejected the paper because it matched exclusion criterion: {violated}."]
     elif title_only and relevance_hits:
         decision = "ambiguous"
         reasons = ["Title suggests relevance, but abstract or readable local text is missing so the paper must not be selected yet."]
+    elif criteria_match["missing_must_include"] and _is_high_priority_screen_match(dimension_scores):
+        decision = "ambiguous"
+        reasons = [
+            _screen_reason(dimension_scores, strong=False),
+            f"Abstract is still missing hard criteria: {', '.join(criteria_match['missing_must_include'][:2])}.",
+        ]
     elif _is_high_priority_screen_match(dimension_scores):
         decision = "ambiguous"
         reasons = [_screen_reason(dimension_scores, strong=True)]
@@ -295,6 +327,8 @@ def _screen_paper(paper: PaperMetadata, query: QueryInput) -> ScreeningResult:
         decision=decision,
         reasons=reasons,
         evidence=paper.evidence,
+        screening_dimensions=dimension_scores,
+        abstract_findings=findings,
         need_fulltext=need_fulltext,
         fulltext_status=paper.fulltext_status,
         access_notes=paper.access_notes,

@@ -84,10 +84,21 @@
           "type": "array",
           "items": { "$ref": "#/$defs/evidence" }
         },
+        "screening_dimensions": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "abstract_findings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
         "need_fulltext": { "type": "boolean" },
         "fulltext_status": {
           "type": "string",
-          "enum": ["available", "restricted", "not_found", "not_requested", "local_only"]
+          "enum": ["available", "restricted", "not_found", "not_requested", "local_only", "challenge", "login_required"]
         },
         "access_notes": { "type": ["string", "null"] },
         "review_ready": { "type": "boolean" },
@@ -105,6 +116,8 @@
         "decision",
         "reasons",
         "evidence",
+        "screening_dimensions",
+        "abstract_findings",
         "need_fulltext",
         "fulltext_status",
         "review_ready",

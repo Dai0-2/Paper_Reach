@@ -24,12 +24,16 @@ Paper-Reach focuses on that gap.
 
 - Skill-based workflow for paper search, paper reading, and ranking
 - Python CLI with a small surface area: `screen`, `fetch-fulltext`, `review`, `run`, `doctor`, `example-query`, `version`
+- Multi-host packaging metadata for Codex/OpenAI-style agents, Claude Code, Gemini-style extensions, and similar skill hosts
 - High-recall retrieval mode with multi-query expansion for larger candidate pools
+- User-authorized session reuse via cookie and header files for sites that require login
 - Online mode via pluggable scholarly backends
 - Offline mode via local files, metadata, DOI/title lists, or text extracts
 - Defensive parser layer for text and optional PDF extraction
 - JSON-first outputs for downstream analysis and reproducibility
 - Conservative screening logic that separates `selected`, `ambiguous`, and `rejected`
+- Explainable abstract screening with search plans, screening dimensions, and abstract findings
+- Optional `must_include` / `soft_include` / `must_exclude` criteria for stricter abstract screening
 - Gap-analysis hints and recommended follow-up queries
 - Lightweight test coverage for core logic
 
@@ -78,7 +82,10 @@ paper-reach/
 Key areas:
 
 - `skills/`: reusable agent-facing skills
+- `SKILL.md`: root host-agnostic skill entrypoint
 - `paper_reach/`: Python package, CLI, workflow, backends, parsers, ranking logic
+- `agents/`, `.claude-plugin/`, `gemini-extension.json`: host-specific discovery metadata
+- `scripts/sync.sh`: sync the skill bundle into common host directories
 - `docs/`: installation, usage, architecture, roadmap
 - `examples/`: end-to-end example queries and workflow recipes
 - `tests/`: lightweight regression coverage
@@ -106,11 +113,40 @@ paper-reach screen --input query.json --output screen.json --high-recall --retri
 Paper-Reach is meant to be usable both as a Python tool and as a reusable agent workflow layer.
 
 - agents read [AGENTS.md](/home/nas/dailing/paper_reach/AGENTS.md)
+- hosts can discover the root [SKILL.md](/home/nas/dailing/paper_reach/SKILL.md)
 - agents use the relevant skill under `skills/`
 - agents call the CLI instead of reimplementing screening logic in prompts
 - agents consume the resulting JSON outputs
 
 See [docs/agent-integration.md](/home/nas/dailing/paper_reach/docs/agent-integration.md) for the recommended integration model.
+
+## Multi-Host Skill Support
+
+Paper-Reach follows the same pattern used by mature cross-host skills:
+
+- one shared execution engine: the `paper-reach` CLI and Python package
+- one host-agnostic skill entrypoint: [SKILL.md](/home/nas/dailing/paper_reach/SKILL.md)
+- thin host-specific manifests:
+  - [agents/openai.yaml](/home/nas/dailing/paper_reach/agents/openai.yaml)
+  - [.claude-plugin/plugin.json](/home/nas/dailing/paper_reach/.claude-plugin/plugin.json)
+  - [gemini-extension.json](/home/nas/dailing/paper_reach/gemini-extension.json)
+- one sync script for common host install locations:
+  - [scripts/sync.sh](/home/nas/dailing/paper_reach/scripts/sync.sh)
+
+This keeps the workflow logic in one place while making the skill discoverable in different ecosystems.
+
+Typical install flow:
+
+```bash
+pip install -e .[dev]
+bash scripts/sync.sh
+```
+
+Common skill targets:
+
+- `~/.claude/skills/paper-reach`
+- `~/.agents/skills/paper-reach`
+- `~/.codex/skills/paper-reach`
 
 Offline run with local inputs:
 
@@ -146,7 +182,9 @@ See [docs/roadmap.md](/home/nas/dailing/paper_reach/docs/roadmap.md) for details
 ## Release And Packaging
 
 - publishing guide: [docs/publishing.md](/home/nas/dailing/paper_reach/docs/publishing.md)
+- agent integration guide: [docs/agent-integration.md](/home/nas/dailing/paper_reach/docs/agent-integration.md)
 - agent recipes: [examples/agent-recipes/README.md](/home/nas/dailing/paper_reach/examples/agent-recipes/README.md)
+- browser cookies guide: [docs/browser-cookies.md](/home/nas/dailing/paper_reach/docs/browser-cookies.md)
 - changelog: [CHANGELOG.md](/home/nas/dailing/paper_reach/CHANGELOG.md)
 - GitHub release body: [docs/github-release-v0.1.0.md](/home/nas/dailing/paper_reach/docs/github-release-v0.1.0.md)
 

@@ -1,0 +1,8 @@
+interface:
+  display_name: "Paper-Reach"
+  short_description: "Run evidence-aware literature screening: retrieve candidate papers, screen abstracts conservatively, review full text when available, and emit structured JSON."
+  default_prompt: "Use Paper-Reach to search candidate papers, screen abstracts conservatively, and produce structured JSON for literature review."
+  brand_color: "#1F6F5F"
+
+policy:
+  allow_implicit_invocation: true

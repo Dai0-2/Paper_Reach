@@ -16,6 +16,18 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "must_include": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "soft_include": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "must_exclude": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
     "year_range": {
       "type": "array",
       "items": { "type": "integer" },
@@ -46,4 +58,3 @@
     "require_fulltext_for_selection"
   ]
 }
-

@@ -1,0 +1,25 @@
+{
+  "name": "paper-reach",
+  "version": "0.1.0",
+  "description": "Evidence-aware literature screening for coding agents. Search candidate papers, screen abstracts conservatively, review full text when available, and emit structured JSON.",
+  "author": {
+    "name": "Paper-Reach contributors",
+    "url": "https://github.com/Dai0-2/paper_reach"
+  },
+  "homepage": "https://github.com/Dai0-2/paper_reach",
+  "repository": "https://github.com/Dai0-2/paper_reach",
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "literature-review",
+    "papers",
+    "screening",
+    "openalex",
+    "arxiv",
+    "agents"
+  ],
+  "skills": [
+    "./"
+  ],
+  "hooks": {}
+}

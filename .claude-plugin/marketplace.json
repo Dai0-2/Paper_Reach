@@ -1,0 +1,20 @@
+{
+  "name": "paper-reach",
+  "display_name": "Paper-Reach",
+  "version": "0.1.0",
+  "description": "Give your AI agent a rigorous literature review workflow.",
+  "repository": "https://github.com/Dai0-2/paper_reach",
+  "homepage": "https://github.com/Dai0-2/paper_reach",
+  "license": "MIT",
+  "skills": [
+    "./"
+  ],
+  "tags": [
+    "research",
+    "literature-review",
+    "screening",
+    "evidence",
+    "offline",
+    "openalex"
+  ]
+}

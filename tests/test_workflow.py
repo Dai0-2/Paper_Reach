@@ -14,6 +14,8 @@ def test_workflow_with_mock_source() -> None:
             "no explicit attention supervision",
             "pure behavior prediction",
         ],
+        must_include=["uses attention map or gaze supervision"],
+        must_exclude=["pure behavior prediction"],
         year_range=(2021, 2026),
         max_results=10,
         need_gap_analysis=True,
@@ -22,6 +24,8 @@ def test_workflow_with_mock_source() -> None:
     )
     result = run_workflow(query, channel_names=["mock_source"], fetch_fulltext=False)
     assert len(result.screening_candidates) == 2
+    assert "search_plan" in result.query_summary
+    assert "must_include" in result.query_summary["search_plan"]
     assert len(result.selected) == 1
     assert len(result.ambiguous) == 1
     assert len(result.rejected) == 1
@@ -62,6 +66,8 @@ def test_screen_then_review_split() -> None:
     screen_output, papers = screen_workflow(query, channel_names=["mock_source"])
     assert len(screen_output.screening_candidates) == 2
     assert screen_output.screening_candidates[0].stage == "screen"
+    assert screen_output.screening_candidates[0].screening_dimensions
+    assert "matched_must_include" in screen_output.screening_candidates[0].abstract_findings
     reviewed = review_workflow(query, screen_output=screen_output, papers=papers)
     assert len(reviewed.selected) == 1
 

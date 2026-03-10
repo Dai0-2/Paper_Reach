@@ -5,8 +5,14 @@ This recipe shows a minimal skill-oriented integration pattern for an OpenClaw-s
 ## Recommended Setup
 
 - keep Paper-Reach installed as a normal Python package or editable repo
-- expose this repository's `skills/` directory to the agent
+- expose this repository's root `SKILL.md` and `skills/` directory to the agent
 - keep screening and review logic in the CLI
+
+If the runtime expects an installed skill directory, run:
+
+```bash
+bash scripts/sync.sh
+```
 
 ## Suggested Skill Mapping
 
@@ -40,4 +46,3 @@ paper-reach fetch-fulltext \
 ## Why This Pattern
 
 The runtime can swap prompts or skills, but the workflow stays consistent because the CLI output is the shared contract.
-

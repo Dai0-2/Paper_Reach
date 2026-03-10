@@ -1,0 +1,19 @@
+{
+  "name": "paper-reach",
+  "version": "0.1.0",
+  "description": "Evidence-aware literature screening for coding agents. Search candidate papers, screen abstracts conservatively, review full text when available, and emit structured JSON.",
+  "settings": [
+    {
+      "name": "Extension Directory",
+      "description": "Extension installation directory, usually provided by the Gemini host.",
+      "envVar": "GEMINI_EXTENSION_DIR",
+      "sensitive": false
+    },
+    {
+      "name": "Paper-Reach Python",
+      "description": "Optional path to the Python interpreter that should run Paper-Reach commands.",
+      "envVar": "PAPER_REACH_PYTHON",
+      "sensitive": false
+    }
+  ]
+}
