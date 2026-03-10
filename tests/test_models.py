@@ -27,6 +27,7 @@ def test_workflow_output_round_trip() -> None:
     output = WorkflowOutput(
         query_summary={"topic": "demo"},
         screening_candidates=[],
+        top_ranked=[],
         selected=[],
         ambiguous=[],
         rejected=[],

@@ -18,6 +18,7 @@ class AppConfig:
     parser_priority: List[str] = field(
         default_factory=lambda: ["pymupdf", "simple_text"]
     )
+    default_workers: int = 8
 
     def as_dict(self) -> Dict[str, object]:
         """Return a serializable view of the config."""
@@ -26,8 +27,8 @@ class AppConfig:
             "request_timeout_seconds": self.request_timeout_seconds,
             "user_agent": self.user_agent,
             "parser_priority": self.parser_priority,
+            "default_workers": self.default_workers,
         }
 
 
 DEFAULT_CONFIG = AppConfig()
-

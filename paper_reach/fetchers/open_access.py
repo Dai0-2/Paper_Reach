@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import urlparse
 
 from ..config import DEFAULT_CONFIG
 from ..models import PaperMetadata
@@ -13,6 +14,7 @@ from .utils import (
     candidate_urls,
     classify_response,
     discover_pdf_url,
+    get_openalex_api_key,
     looks_like_pdf,
 )
 
@@ -36,6 +38,11 @@ class OpenAccessFetcher(FulltextFetcher):
             paper.access_notes = "A download directory is required for automatic full-text retrieval."
             return paper
         session = build_session(context)
+        if _can_try_openalex_content(paper):
+            api_key = get_openalex_api_key()
+            if api_key and _attempt_openalex_content(session, api_key, paper, download_dir):
+                paper.access_notes = "Downloaded from the OpenAlex content API."
+                return paper
         for url in candidate_urls(paper.download_url, paper.url):
             outcome = _attempt_url(session, url, paper, download_dir)
             if outcome:
@@ -96,3 +103,44 @@ def _write_pdf(download_dir: Path, paper: PaperMetadata, content: bytes) -> None
     paper.pdf_path = str(target)
     paper.local_path = str(target)
     paper.fulltext_status = "available"
+
+
+def _can_try_openalex_content(paper: PaperMetadata) -> bool:
+    return paper.source == "openalex" and bool(_openalex_work_id(paper))
+
+
+def _openalex_work_id(paper: PaperMetadata) -> str | None:
+    if not paper.id:
+        return None
+    parsed = urlparse(paper.id)
+    candidate = parsed.path.rsplit("/", 1)[-1] if parsed.path else paper.id
+    if candidate.startswith("W") and candidate[1:].isdigit():
+        return candidate
+    return None
+
+
+def _attempt_openalex_content(session, api_key: str, paper: PaperMetadata, download_dir: Path) -> bool:
+    work_id = _openalex_work_id(paper)
+    if work_id is None:
+        return False
+    url = f"https://content.openalex.org/works/{work_id}.pdf"
+    try:
+        response = session.get(
+            url,
+            params={"api_key": api_key},
+            timeout=DEFAULT_CONFIG.request_timeout_seconds,
+            allow_redirects=True,
+        )
+    except Exception:
+        return False
+
+    if response.status_code in {401, 402, 403, 404, 429}:
+        # Missing entitlement, exhausted daily quota, or no content for this work.
+        return False
+    if response.status_code >= 400:
+        return False
+    if not looks_like_pdf(response):
+        return False
+    _write_pdf(download_dir, paper, response.content)
+    paper.download_url = url
+    return True

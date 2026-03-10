@@ -93,3 +93,27 @@ def test_high_recall_screen_limits_review_queue() -> None:
     assert len(screen_output.screening_candidates) >= 1
     assert len(papers) == 1
     assert screen_output.query_summary["high_recall"] is True
+
+
+def test_parallel_workflow_paths_still_work() -> None:
+    query = QueryInput(
+        topic="Driving attention prediction with BDD-100K",
+        keywords=["BDD-100K", "driving attention", "gaze prediction", "attention map"],
+        inclusion_criteria=["uses attention map or gaze supervision"],
+        exclusion_criteria=["pure behavior prediction"],
+        year_range=(2021, 2026),
+        max_results=2,
+        need_gap_analysis=True,
+        mode="auto",
+        require_fulltext_for_selection=False,
+    )
+    result = run_workflow(
+        query,
+        channel_names=["mock_source"],
+        fetch_fulltext=False,
+        workers=4,
+    )
+    assert len(result.selected) == 1
+    assert len(result.ambiguous) == 1
+    assert result.query_summary["review_attempted_count"] == 2
+    assert len(result.top_ranked) >= 1

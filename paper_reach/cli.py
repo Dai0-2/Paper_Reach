@@ -10,8 +10,10 @@ import typer
 from . import __version__
 from .config import DEFAULT_CONFIG
 from .fetchers.utils import FetchContext
-from .io_utils import load_query, print_json, write_json
+from .fetchers.utils import get_openalex_api_key
+from .io_utils import load_query, load_workflow_output, print_json, write_json
 from .models import QueryInput
+from .summarize import summarize_workflow_output
 from .parsers.pymupdf_parser import fitz
 from .workflow import (
     available_channels,
@@ -28,6 +30,7 @@ app = typer.Typer(help="Give your AI agent a rigorous literature review workflow
 def run_command(
     input: Path = typer.Option(..., "--input", exists=True, readable=True, help="Path to query JSON."),
     output: Path = typer.Option(..., "--output", help="Path to write result JSON."),
+    bundle_dir: Optional[Path] = typer.Option(None, "--bundle-dir", help="Optional directory to save query, stage outputs, full result, and compact summaries together."),
     mode: Optional[str] = typer.Option(None, "--mode", help="Override query mode."),
     channel: Optional[List[str]] = typer.Option(None, "--channel", help="Explicit channel names."),
     local_path: Optional[List[Path]] = typer.Option(None, "--local-path", help="Additional local paths."),
@@ -37,19 +40,41 @@ def run_command(
     header_file: Optional[Path] = typer.Option(None, "--header-file", exists=True, readable=True, help="JSON header file for user-authorized sessions."),
     high_recall: bool = typer.Option(False, "--high-recall", help="Use broader multi-query retrieval."),
     retrieval_limit: Optional[int] = typer.Option(None, "--retrieval-limit", help="Maximum initial retrieval size."),
+    workers: int = typer.Option(DEFAULT_CONFIG.default_workers, "--workers", min=1, help="Thread count for screening, fetch, and review work."),
 ) -> None:
     """Run screen + optional fetch + review."""
     query = _load_query_with_overrides(input, mode, local_path)
-    result = run_workflow(
+    screen_output, papers = screen_workflow(
         query,
         channel_names=channel,
-        fetch_fulltext=not no_fetch_fulltext,
-        download_dir=download_dir,
         high_recall=high_recall,
         retrieval_limit=retrieval_limit,
-        fetch_context=_fetch_context(cookie_file, header_file),
+        workers=workers,
+    )
+    fetched = papers
+    if not no_fetch_fulltext:
+        fetched = fetch_fulltexts(
+            papers,
+            download_dir=download_dir,
+            context=_fetch_context(cookie_file, header_file),
+            workers=workers,
+        )
+    result = review_workflow(
+        query,
+        screen_output=screen_output,
+        papers=fetched,
+        workers=workers,
     )
     write_json(output, result.model_dump(mode="json"))
+    if bundle_dir is not None:
+        _write_run_bundle(
+            bundle_dir=bundle_dir,
+            query=query,
+            screen_output=screen_output,
+            fetched_papers=fetched,
+            result=result,
+            source_query_path=input,
+        )
     typer.echo(f"Wrote result to {output}")
 
 
@@ -62,6 +87,7 @@ def screen_command(
     local_path: Optional[List[Path]] = typer.Option(None, "--local-path", help="Additional local paths."),
     high_recall: bool = typer.Option(False, "--high-recall", help="Use broader multi-query retrieval."),
     retrieval_limit: Optional[int] = typer.Option(None, "--retrieval-limit", help="Maximum initial retrieval size."),
+    workers: int = typer.Option(DEFAULT_CONFIG.default_workers, "--workers", min=1, help="Thread count for abstract screening work."),
 ) -> None:
     """Run initial abstract-level screening only."""
     query = _load_query_with_overrides(input, mode, local_path)
@@ -70,6 +96,7 @@ def screen_command(
         channel_names=channel,
         high_recall=high_recall,
         retrieval_limit=retrieval_limit,
+        workers=workers,
     )
     write_json(output, result.model_dump(mode="json"))
     typer.echo(f"Wrote screening result to {output}")
@@ -87,6 +114,7 @@ def fetch_fulltext_command(
     header_file: Optional[Path] = typer.Option(None, "--header-file", exists=True, readable=True, help="JSON header file for user-authorized sessions."),
     high_recall: bool = typer.Option(False, "--high-recall", help="Use broader multi-query retrieval."),
     retrieval_limit: Optional[int] = typer.Option(None, "--retrieval-limit", help="Maximum initial retrieval size."),
+    workers: int = typer.Option(DEFAULT_CONFIG.default_workers, "--workers", min=1, help="Thread count for fetch and review work."),
 ) -> None:
     """Run screen, attempt full-text fetch, then emit review result."""
     query = _load_query_with_overrides(input, mode, local_path)
@@ -95,13 +123,15 @@ def fetch_fulltext_command(
         channel_names=channel,
         high_recall=high_recall,
         retrieval_limit=retrieval_limit,
+        workers=workers,
     )
     fetched = fetch_fulltexts(
         papers,
         download_dir=download_dir,
         context=_fetch_context(cookie_file, header_file),
+        workers=workers,
     )
-    result = review_workflow(query, screen_output=screen_output, papers=fetched)
+    result = review_workflow(query, screen_output=screen_output, papers=fetched, workers=workers)
     write_json(output, result.model_dump(mode="json"))
     typer.echo(f"Wrote fetched review result to {output}")
 
@@ -115,6 +145,7 @@ def review_command(
     local_path: Optional[List[Path]] = typer.Option(None, "--local-path", help="Additional local paths."),
     high_recall: bool = typer.Option(False, "--high-recall", help="Use broader multi-query retrieval."),
     retrieval_limit: Optional[int] = typer.Option(None, "--retrieval-limit", help="Maximum initial retrieval size."),
+    workers: int = typer.Option(DEFAULT_CONFIG.default_workers, "--workers", min=1, help="Thread count for review work."),
 ) -> None:
     """Run screen and review using only already-available local full text."""
     query = _load_query_with_overrides(input, mode, local_path)
@@ -123,8 +154,9 @@ def review_command(
         channel_names=channel,
         high_recall=high_recall,
         retrieval_limit=retrieval_limit,
+        workers=workers,
     )
-    result = review_workflow(query, screen_output=screen_output, papers=papers)
+    result = review_workflow(query, screen_output=screen_output, papers=papers, workers=workers)
     write_json(output, result.model_dump(mode="json"))
     typer.echo(f"Wrote review result to {output}")
 
@@ -137,6 +169,7 @@ def doctor_command() -> None:
         "channels": sorted(available_channels().keys()),
         "pdf_parser_available": fitz is not None,
         "authenticated_fetch_supported": True,
+        "openalex_content_api_configured": bool(get_openalex_api_key()),
         "default_config": DEFAULT_CONFIG.as_dict(),
         "workflow_stages": ["screen", "fetch-fulltext", "review", "run"],
     }
@@ -175,6 +208,35 @@ def version_command() -> None:
     typer.echo(__version__)
 
 
+@app.command("summarize")
+def summarize_command(
+    input: Path = typer.Option(..., "--input", exists=True, readable=True, help="Path to workflow result JSON."),
+    output: Optional[Path] = typer.Option(None, "--output", help="Optional path to write compact JSON."),
+    format: str = typer.Option("titles", "--format", help="Compact output format: titles or brief."),
+    include_rejected: bool = typer.Option(False, "--include-rejected", help="Include rejected papers in the compact output."),
+    decision: str = typer.Option("all", "--decision", help="Filter to all, selected, ambiguous, or rejected."),
+    top_k: Optional[int] = typer.Option(None, "--top-k", min=1, help="Keep only the first K items after filtering."),
+) -> None:
+    """Export a compact human-readable view from a full workflow result."""
+    if format not in {"titles", "brief"}:
+        raise typer.BadParameter("format must be one of: titles, brief")
+    if decision not in {"all", "selected", "ambiguous", "rejected"}:
+        raise typer.BadParameter("decision must be one of: all, selected, ambiguous, rejected")
+    workflow = load_workflow_output(input)
+    payload = summarize_workflow_output(
+        workflow,
+        format=format,  # type: ignore[arg-type]
+        include_rejected=include_rejected,
+        decision=decision,  # type: ignore[arg-type]
+        top_k=top_k,
+    )
+    if output is None:
+        print_json(payload)
+        return
+    write_json(output, payload)
+    typer.echo(f"Wrote summary to {output}")
+
+
 def _load_query_with_overrides(
     input_path: Path,
     mode: Optional[str],
@@ -193,6 +255,47 @@ def _fetch_context(cookie_file: Optional[Path], header_file: Optional[Path]) -> 
     if cookie_file is None and header_file is None:
         return None
     return FetchContext(cookie_file=cookie_file, header_file=header_file)
+
+
+def _write_run_bundle(
+    *,
+    bundle_dir: Path,
+    query: QueryInput,
+    screen_output,
+    fetched_papers,
+    result,
+    source_query_path: Path,
+) -> None:
+    bundle_dir.mkdir(parents=True, exist_ok=True)
+    write_json(bundle_dir / "00_query.json", query.model_dump(mode="json"))
+    write_json(bundle_dir / "10_screen.json", screen_output.model_dump(mode="json"))
+    write_json(
+        bundle_dir / "20_fetched_papers.json",
+        [paper.model_dump(mode="json") for paper in fetched_papers],
+    )
+    write_json(bundle_dir / "30_result_full.json", result.model_dump(mode="json"))
+    write_json(
+        bundle_dir / "40_result_brief.json",
+        summarize_workflow_output(result, format="brief", top_k=20),
+    )
+    write_json(
+        bundle_dir / "50_result_titles.json",
+        summarize_workflow_output(result, format="titles", top_k=20),
+    )
+    write_json(
+        bundle_dir / "manifest.json",
+        {
+            "source_query_path": str(source_query_path),
+            "files": {
+                "query": str(bundle_dir / "00_query.json"),
+                "screen": str(bundle_dir / "10_screen.json"),
+                "fetched_papers": str(bundle_dir / "20_fetched_papers.json"),
+                "result_full": str(bundle_dir / "30_result_full.json"),
+                "result_brief": str(bundle_dir / "40_result_brief.json"),
+                "result_titles": str(bundle_dir / "50_result_titles.json"),
+            },
+        },
+    )
 
 
 if __name__ == "__main__":

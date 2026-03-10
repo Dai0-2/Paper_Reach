@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Iterable, List, Sequence
 
@@ -11,6 +12,7 @@ from .channels.base import SearchChannel
 from .channels.local_files import LocalFilesChannel
 from .channels.mock_source import MockSourceChannel
 from .channels.openalex import OpenAlexChannel
+from .config import DEFAULT_CONFIG
 from .fetchers.open_access import OpenAccessFetcher
 from .fetchers.utils import FetchContext
 from .models import PaperEvidence, PaperMetadata, QueryInput, ScreeningResult, WorkflowOutput
@@ -44,6 +46,7 @@ def run_workflow(
     high_recall: bool = False,
     retrieval_limit: int | None = None,
     fetch_context: FetchContext | None = None,
+    workers: int | None = None,
 ) -> WorkflowOutput:
     """Run screen, optional fetch, and review as a single command."""
     screen_output, screened_papers = screen_workflow(
@@ -51,6 +54,7 @@ def run_workflow(
         channel_names=channel_names,
         high_recall=high_recall,
         retrieval_limit=retrieval_limit,
+        workers=workers,
     )
     review_input = screened_papers
     if fetch_fulltext:
@@ -58,8 +62,14 @@ def run_workflow(
             screened_papers,
             download_dir=download_dir,
             context=fetch_context,
+            workers=workers,
         )
-    return review_workflow(query, screen_output=screen_output, papers=review_input)
+    return review_workflow(
+        query,
+        screen_output=screen_output,
+        papers=review_input,
+        workers=workers,
+    )
 
 
 def screen_workflow(
@@ -68,6 +78,7 @@ def screen_workflow(
     *,
     high_recall: bool = False,
     retrieval_limit: int | None = None,
+    workers: int | None = None,
 ) -> tuple[WorkflowOutput, List[PaperMetadata]]:
     """Run initial abstract-level screening and return review candidates."""
     channels_map = available_channels()
@@ -84,9 +95,7 @@ def screen_workflow(
     rejected: List[ScreeningResult] = []
     review_ready: List[PaperMetadata] = []
 
-    for paper in hydrated:
-        paper = _enrich_paper(paper)
-        result = _screen_paper(paper, query)
+    for paper, result in _screen_candidates(hydrated, query, workers=workers):
         if result.decision == "rejected":
             rejected.append(result)
         else:
@@ -111,6 +120,7 @@ def screen_workflow(
             "rejected_at_screening_count": len(rejected),
         },
         screening_candidates=screening_candidates,
+        top_ranked=[],
         rejected=rejected,
         gap_analysis=[],
         recommended_next_queries=[],
@@ -123,20 +133,28 @@ def fetch_fulltexts(
     *,
     download_dir: Path | None = None,
     context: FetchContext | None = None,
+    workers: int | None = None,
 ) -> List[PaperMetadata]:
     """Attempt to fetch full text for screened papers."""
     fetcher = OpenAccessFetcher()
-    updated: List[PaperMetadata] = []
-    for paper in papers:
-        if paper.local_path or paper.pdf_path or paper.full_text:
-            if paper.full_text:
-                paper.fulltext_status = "available"
-            elif paper.pdf_path:
-                paper.fulltext_status = "local_only"
-            updated.append(_attach_local_text(paper))
-            continue
-        updated.append(fetcher.fetch(paper, download_dir=download_dir, context=context))
-    return updated
+    worker_count = _normalized_workers(workers, len(papers))
+    if worker_count == 1:
+        return [
+            _fetch_single_paper(fetcher, paper, download_dir=download_dir, context=context)
+            for paper in papers
+        ]
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        return list(
+            executor.map(
+                lambda item: _fetch_single_paper(
+                    fetcher,
+                    item,
+                    download_dir=download_dir,
+                    context=context,
+                ),
+                papers,
+            )
+        )
 
 
 def review_workflow(
@@ -144,49 +162,31 @@ def review_workflow(
     *,
     screen_output: WorkflowOutput,
     papers: Sequence[PaperMetadata],
+    workers: int | None = None,
 ) -> WorkflowOutput:
     """Run final review and ranking for screened papers."""
     selected: List[ScreeningResult] = []
     ambiguous: List[ScreeningResult] = []
     review_rejected: List[ScreeningResult] = []
+    reviewed_results: List[ScreeningResult] = []
 
-    for paper in papers:
-        paper = _attach_local_text(paper)
-        paper = _enrich_paper(paper)
-        ranking = score_paper(paper, query)
-        need_fulltext = not bool(paper.full_text) and ranking.decision != "rejected"
-        result = ScreeningResult(
-            id=paper.id,
-            title=paper.title,
-            authors=paper.authors,
-            year=paper.year,
-            venue=paper.venue,
-            abstract=paper.abstract,
-            abstract_summary=paper.abstract_summary or _summarize_abstract(paper.abstract),
-            source=paper.source,
-            url=paper.url,
-            pdf_path=paper.pdf_path,
-            download_url=paper.download_url,
-            relevance_score=ranking.total,
-            decision=ranking.decision,
-            reasons=ranking.reasons,
-            evidence=paper.evidence,
-            screening_dimensions={},
-            abstract_findings={},
-            need_fulltext=need_fulltext,
-            fulltext_status=paper.fulltext_status,
-            access_notes=paper.access_notes,
-            review_ready=True,
-            stage="review",
-        )
-        if ranking.decision == "selected":
+    for result in _review_candidates(query, papers, workers=workers):
+        reviewed_results.append(result)
+        if result.decision == "selected":
             selected.append(result)
-        elif ranking.decision == "ambiguous":
+        elif result.decision == "ambiguous":
             ambiguous.append(result)
         else:
             review_rejected.append(result)
 
     rejected = [*screen_output.rejected, *review_rejected]
+    downloaded_reviewed = [
+        result
+        for result in reviewed_results
+        if result.fulltext_status in {"available", "local_only"} or result.pdf_path
+    ]
+    shortlist_source = downloaded_reviewed or reviewed_results
+    top_ranked = sorted(shortlist_source, key=lambda item: item.relevance_score, reverse=True)[:20]
     query_summary = {
         "topic": query.topic,
         "mode": query.mode,
@@ -194,6 +194,9 @@ def review_workflow(
         "search_plan": screen_output.query_summary.get("search_plan", {}),
         "total_candidates": screen_output.query_summary.get("total_candidates", 0),
         "screening_candidates_count": len(screen_output.screening_candidates),
+        "review_attempted_count": len(papers),
+        "downloaded_fulltext_count": len(downloaded_reviewed),
+        "top_ranked_count": len(top_ranked),
         "selected_count": len(selected),
         "ambiguous_count": len(ambiguous),
         "rejected_count": len(rejected),
@@ -203,6 +206,7 @@ def review_workflow(
     return WorkflowOutput(
         query_summary=query_summary,
         screening_candidates=screen_output.screening_candidates,
+        top_ranked=top_ranked,
         selected=selected,
         ambiguous=ambiguous,
         rejected=rejected,
@@ -262,6 +266,96 @@ def _parse_local_path(path: Path) -> str | None:
         if parser.can_parse(path):
             return parser.parse(path)
     return None
+
+
+def _screen_candidates(
+    papers: Sequence[PaperMetadata],
+    query: QueryInput,
+    *,
+    workers: int | None = None,
+) -> List[tuple[PaperMetadata, ScreeningResult]]:
+    worker_count = _normalized_workers(workers, len(papers))
+    if worker_count == 1:
+        return [_screen_single_paper(paper, query) for paper in papers]
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        return list(executor.map(lambda item: _screen_single_paper(item, query), papers))
+
+
+def _screen_single_paper(
+    paper: PaperMetadata,
+    query: QueryInput,
+) -> tuple[PaperMetadata, ScreeningResult]:
+    enriched = _enrich_paper(paper)
+    return enriched, _screen_paper(enriched, query)
+
+
+def _fetch_single_paper(
+    fetcher: OpenAccessFetcher,
+    paper: PaperMetadata,
+    *,
+    download_dir: Path | None = None,
+    context: FetchContext | None = None,
+) -> PaperMetadata:
+    if paper.local_path or paper.pdf_path or paper.full_text:
+        if paper.full_text:
+            paper.fulltext_status = "available"
+        elif paper.pdf_path:
+            paper.fulltext_status = "local_only"
+        return _attach_local_text(paper)
+    return fetcher.fetch(paper, download_dir=download_dir, context=context)
+
+
+def _review_candidates(
+    query: QueryInput,
+    papers: Sequence[PaperMetadata],
+    *,
+    workers: int | None = None,
+) -> List[ScreeningResult]:
+    worker_count = _normalized_workers(workers, len(papers))
+    if worker_count == 1:
+        return [_review_single_paper(query, paper) for paper in papers]
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        return list(executor.map(lambda item: _review_single_paper(query, item), papers))
+
+
+def _review_single_paper(query: QueryInput, paper: PaperMetadata) -> ScreeningResult:
+    paper = _attach_local_text(paper)
+    paper = _enrich_paper(paper)
+    ranking = score_paper(paper, query)
+    need_fulltext = not bool(paper.full_text) and ranking.decision != "rejected"
+    return ScreeningResult(
+        id=paper.id,
+        title=paper.title,
+        authors=paper.authors,
+        year=paper.year,
+        venue=paper.venue,
+        abstract=paper.abstract,
+        abstract_summary=paper.abstract_summary or _summarize_abstract(paper.abstract),
+        source=paper.source,
+        url=paper.url,
+        pdf_path=paper.pdf_path,
+        download_url=paper.download_url,
+        relevance_score=ranking.total,
+        decision=ranking.decision,
+        reasons=ranking.reasons,
+        evidence=paper.evidence,
+        screening_dimensions={},
+        abstract_findings={},
+        need_fulltext=need_fulltext,
+        fulltext_status=paper.fulltext_status,
+        access_notes=paper.access_notes,
+        review_ready=True,
+        stage="review",
+        venue_tier_inferred=ranking.venue_tier_inferred,
+        venue_tier_confidence=ranking.venue_tier_confidence,
+    )
+
+
+def _normalized_workers(workers: int | None, item_count: int) -> int:
+    if item_count <= 1:
+        return 1
+    base = workers or DEFAULT_CONFIG.default_workers
+    return max(1, min(base, item_count))
 
 
 def _enrich_paper(paper: PaperMetadata) -> PaperMetadata:

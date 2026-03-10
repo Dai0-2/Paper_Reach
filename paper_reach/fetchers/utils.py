@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from http.cookiejar import MozillaCookieJar
@@ -21,6 +22,11 @@ class FetchContext:
 
     cookie_file: Path | None = None
     header_file: Path | None = None
+
+
+def get_openalex_api_key() -> str | None:
+    """Return an OpenAlex content API key from the environment if configured."""
+    return os.getenv("OPENALEX_API_KEY") or os.getenv("OPENALEX_CONTENT_API_KEY")
 
 
 def build_session(context: FetchContext | None = None) -> requests.Session:

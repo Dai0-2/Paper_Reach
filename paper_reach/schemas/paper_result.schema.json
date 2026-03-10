@@ -10,6 +10,10 @@
       "type": "array",
       "items": { "$ref": "#/$defs/screeningResult" }
     },
+    "top_ranked": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/screeningResult" }
+    },
     "selected": {
       "type": "array",
       "items": { "$ref": "#/$defs/screeningResult" }
@@ -34,6 +38,7 @@
   "required": [
     "query_summary",
     "screening_candidates",
+    "top_ranked",
     "selected",
     "ambiguous",
     "rejected",
@@ -102,6 +107,14 @@
         },
         "access_notes": { "type": ["string", "null"] },
         "review_ready": { "type": "boolean" },
+        "venue_tier_inferred": {
+          "type": ["string", "null"],
+          "enum": ["Q1-like", "Q2-like", "unknown", "excluded", null]
+        },
+        "venue_tier_confidence": {
+          "type": ["string", "null"],
+          "enum": ["high", "medium", "low", null]
+        },
         "stage": {
           "type": "string",
           "enum": ["screen", "review"]

@@ -20,6 +20,8 @@ FulltextStatus = Literal[
     "login_required",
 ]
 Stage = Literal["screen", "review"]
+VenueTier = Literal["Q1-like", "Q2-like", "unknown", "excluded"]
+VenueConfidence = Literal["high", "medium", "low"]
 
 
 class QueryInput(BaseModel):
@@ -38,6 +40,9 @@ class QueryInput(BaseModel):
     mode: Mode = "auto"
     local_paths: List[str] = Field(default_factory=list)
     require_fulltext_for_selection: bool = False
+    rubric_profile_name: Optional[str] = None
+    rubric_profile: Optional["RubricProfile"] = None
+    venue_policy: Optional["VenuePolicy"] = None
 
     @field_validator("year_range")
     @classmethod
@@ -112,6 +117,8 @@ class ScreeningResult(BaseModel):
     access_notes: Optional[str] = None
     review_ready: bool = False
     stage: Stage = "screen"
+    venue_tier_inferred: Optional[VenueTier] = None
+    venue_tier_confidence: Optional[VenueConfidence] = None
 
 
 class RankingResult(BaseModel):
@@ -127,6 +134,43 @@ class RankingResult(BaseModel):
     reasons: List[str] = Field(default_factory=list)
     violated_criteria: List[str] = Field(default_factory=list)
     insufficient_evidence: bool = False
+    dimension_scores: Dict[str, int] = Field(default_factory=dict)
+    venue_tier_inferred: Optional[VenueTier] = None
+    venue_tier_confidence: Optional[VenueConfidence] = None
+
+
+class RubricDimension(BaseModel):
+    """Single scoring dimension in a profile-driven rubric."""
+
+    name: str
+    weight: int = 1
+
+
+class RubricThresholds(BaseModel):
+    """Decision thresholds for a profile-driven rubric."""
+
+    selected: int = 8
+    ambiguous: int = 6
+
+
+class RubricProfile(BaseModel):
+    """Configurable rubric profile for task-specific ranking."""
+
+    name: str
+    hard_gates: List[str] = Field(default_factory=list)
+    dimensions: List[RubricDimension] = Field(default_factory=list)
+    thresholds: RubricThresholds = Field(default_factory=RubricThresholds)
+
+
+class VenuePolicy(BaseModel):
+    """Venue quality filter rules applied after topic matching."""
+
+    exclude_publishers: List[str] = Field(default_factory=list)
+    elite_journals: List[str] = Field(default_factory=list)
+    elite_conferences: List[str] = Field(default_factory=list)
+    allow_journal_quartiles: List[str] = Field(default_factory=list)
+    allow_conference_tiers: List[str] = Field(default_factory=list)
+    reject_unknown_venue_rank: bool = False
 
 
 class WorkflowOutput(BaseModel):
@@ -134,8 +178,12 @@ class WorkflowOutput(BaseModel):
 
     query_summary: Dict[str, object]
     screening_candidates: List[ScreeningResult] = Field(default_factory=list)
+    top_ranked: List[ScreeningResult] = Field(default_factory=list)
     selected: List[ScreeningResult] = Field(default_factory=list)
     ambiguous: List[ScreeningResult] = Field(default_factory=list)
     rejected: List[ScreeningResult] = Field(default_factory=list)
     gap_analysis: List[str] = Field(default_factory=list)
     recommended_next_queries: List[str] = Field(default_factory=list)
+
+
+QueryInput.model_rebuild()

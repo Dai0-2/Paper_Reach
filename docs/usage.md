@@ -107,8 +107,25 @@ paper-reach example-query
 paper-reach screen --input query.json --output screen.json
 paper-reach fetch-fulltext --input query.json --output review.json
 paper-reach review --input query.json --output result.json
+paper-reach summarize --input result.json --output titles.json --format titles
 paper-reach version
 paper-reach run --input query.json --output result.json
+```
+
+## Export A Compact Human View
+
+Keep the full workflow JSON for reproducibility, then export a short list for manual reading.
+
+Titles only:
+
+```bash
+paper-reach summarize --input result.json --output titles.json --format titles
+```
+
+Brief view with title, URL, decision, reasons, and a few extracted fields:
+
+```bash
+paper-reach summarize --input result.json --output brief.json --format brief
 ```
 
 ## Use From A Codex Or Similar Agent

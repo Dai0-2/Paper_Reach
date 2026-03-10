@@ -5,9 +5,12 @@ from paper_reach.fetchers.utils import (
     build_session,
     classify_response,
     discover_pdf_url,
+    get_openalex_api_key,
     load_cookies,
     load_headers,
 )
+from paper_reach.models import PaperMetadata
+from paper_reach.fetchers.open_access import _openalex_work_id
 
 
 class DummyResponse:
@@ -40,3 +43,16 @@ def test_load_json_headers_and_cookies(tmp_path: Path) -> None:
     assert session.headers["Authorization"] == "Bearer demo"
     assert session.cookies.get("sessionid") == "abc"
 
+
+def test_openalex_work_id_extraction() -> None:
+    paper = PaperMetadata(
+        id="https://openalex.org/W2741809807",
+        title="Demo",
+        source="openalex",
+    )
+    assert _openalex_work_id(paper) == "W2741809807"
+
+
+def test_get_openalex_api_key(monkeypatch) -> None:
+    monkeypatch.setenv("OPENALEX_API_KEY", "demo-key")
+    assert get_openalex_api_key() == "demo-key"
