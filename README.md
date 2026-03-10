@@ -1,16 +1,26 @@
-# Paper-Reach
+<div align="center">
 
-给你的 AI Agent 一套严谨的文献检索与筛选工作流。
+# 👁️ Paper-Reach
+
+给你的 AI Agent 一键装上更严谨的文献检索与筛选能力
+
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](pyproject.toml)
+[![GitHub Stars](https://img.shields.io/github/stars/Dai0-2/Paper_Reach?style=social)](https://github.com/Dai0-2/Paper_Reach)
+
+[快速开始](#快速开始) · [English](README_EN.md) · [支持平台](#支持平台) · [设计理念](#设计理念)
+
+</div>
+
+---
+
+## 为什么是 Paper-Reach？
 
 `Paper-Reach` 是一个面向 AI Agent 的开源 Skill + CLI，用于文献检索、摘要初筛、全文细筛、证据提取和保守排序。
 
 它适用于 Codex、Claude Code、OpenClaw、Cursor 等智能编码代理，也可以单独作为一个 Python CLI 使用。
 
-[快速开始](#快速开始) · [English](#english) · [支持平台](#支持平台) · [设计理念](#设计理念)
-
----
-
-## 为什么是 Paper-Reach？
+它的重点不是“再多搜几个来源”，而是“基于证据更严谨地筛论文”。
 
 AI Agent 已经能写代码、改文档、管仓库了，但一旦进入真实文献综述流程，通常就会出问题：
 
@@ -110,22 +120,6 @@ runs/demo/
 > git pull
 > pip install -e .[dev]
 > ```
-
----
-
-## English
-
-Paper-Reach is an open-source skill + CLI for literature search, abstract screening, full-text review, evidence extraction, and conservative ranking.
-
-It is designed for coding agents such as Codex, Claude Code, OpenClaw, Cursor, and similar tools, while also working as a standalone Python CLI.
-
-The repository default is Chinese for the landing page, but the project remains usable for international contributors and agent workflows.
-
-Typical message to an agent:
-
-```text
-Install and use Paper-Reach from this repository. Run a high-recall literature screening workflow, keep the output conservative, and export both a full JSON result and a brief shortlist.
-```
 
 ---
 
@@ -303,6 +297,7 @@ Paper-Reach 采用和成熟跨宿主 skill 项目类似的结构：
 ```text
 paper-reach/
 ├─ README.md
+├─ README_EN.md
 ├─ AGENTS.md
 ├─ SKILL.md
 ├─ docs/
@@ -324,13 +319,6 @@ paper-reach/
 - [docs/browser-cookies.md](docs/browser-cookies.md)
 - [docs/publishing.md](docs/publishing.md)
 - [docs/roadmap.md](docs/roadmap.md)
-
-## 后续还值得继续优化的地方
-
-- 安装体验还能更一键化
-- 首页还能更强调结果导向
-- Cookie 配置可以再做得更“照着就能用”
-- shortlist 质量还值得继续提升
 
 ## Contributing
 
