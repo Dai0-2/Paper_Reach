@@ -1,49 +1,49 @@
 # Paper-Reach
 
-Give your AI agent a rigorous literature review workflow.
+给你的 AI Agent 一套严谨的文献检索与筛选工作流。
 
-`Paper-Reach` is an open-source skill + CLI for literature search, abstract screening, full-text review, evidence extraction, and conservative ranking.
+`Paper-Reach` 是一个面向 AI Agent 的开源 Skill + CLI，用于文献检索、摘要初筛、全文细筛、证据提取和保守排序。
 
-It is built for coding agents such as Codex, Claude Code, OpenClaw, Cursor, and similar tools, but it also works as a standalone Python CLI.
+它适用于 Codex、Claude Code、OpenClaw、Cursor 等智能编码代理，也可以单独作为一个 Python CLI 使用。
 
-[Quick Start](#quick-start) · [English](#english) · [Supported Platforms](#supported-platforms) · [Design Philosophy](#design-philosophy)
+[快速开始](#快速开始) · [English](#english) · [支持平台](#支持平台) · [设计理念](#设计理念)
 
 ---
 
-## Why Paper-Reach?
+## 为什么是 Paper-Reach？
 
-AI agents can already write code, edit docs, and manage repositories. But once you ask them to do a real literature review, they usually break down:
+AI Agent 已经能写代码、改文档、管仓库了，但一旦进入真实文献综述流程，通常就会出问题：
 
-- "Find papers on this topic and keep only the ones that actually match my criteria." -> They overclaim from titles.
-- "Tell me which papers really use this dataset or supervision signal." -> Abstract evidence is often too weak.
-- "Download the paper and confirm the method." -> PDF access fails, and the workflow stalls.
-- "Give me a shortlist I can actually read." -> The output is a giant JSON blob.
+- “帮我找这个主题真正符合条件的论文。” -> 很容易只看标题就过度判断
+- “帮我确认哪些论文真的用了这个数据或监督信号。” -> 仅靠摘要证据往往不够
+- “帮我把论文下下来再确认方法。” -> PDF 获取经常失败，流程容易中断
+- “给我一个我真正能看的 shortlist。” -> 最后只吐一大坨 JSON，人根本不想翻
 
-The hard part is not search. The hard part is **evidence-based screening**.
+难点不在搜索，而在于 **基于证据的筛选**。
 
-Paper-Reach turns that into a repeatable workflow:
+Paper-Reach 把这件事拆成可复用的步骤：
 
-1. retrieve a large candidate pool
-2. screen conservatively at abstract level
-3. fetch full text when possible
-4. review with stronger evidence
-5. export both machine-readable and human-readable outputs
+1. 先检索一个较大的候选池
+2. 在摘要层做保守初筛
+3. 能拿到全文时继续下载
+4. 用更强的证据做细筛
+5. 同时导出给机器和给人看的结果
 
-### Before You Use It
+### 开始之前
 
-| Item | What it means |
+| 项目 | 含义 |
 |---|---|
-| **Conservative by default** | Title-only relevance is never treated as strong evidence |
-| **Agent-friendly** | Works as a CLI and as a reusable skill bundle |
-| **Graceful fallback** | If full text cannot be downloaded, the workflow still remains useful |
-| **Human-readable output** | You get `brief` and `titles` exports, not just giant JSON |
-| **Extensible** | Search backends, parsers, ranking profiles, and fetch logic are pluggable |
+| **默认保守** | 只看标题的相关性绝不会被当成强证据 |
+| **Agent 友好** | 可单独作为 CLI 用，也可作为可复用 skill bundle 用 |
+| **优雅回退** | 全文下不下来，流程也不会直接废掉 |
+| **人类可读** | 支持 `brief` 和 `titles` 导出，不只是大 JSON |
+| **易扩展** | 搜索后端、解析器、ranking profile、下载逻辑都可插拔 |
 
 ---
 
-## Quick Start
+## 快速开始
 
-Install locally:
+本地安装：
 
 ```bash
 python -m venv .venv
@@ -52,13 +52,13 @@ pip install -e .[dev]
 paper-reach doctor
 ```
 
-Generate a sample query:
+生成一个示例 query：
 
 ```bash
 paper-reach example-query > query.json
 ```
 
-Run a high-recall screening pass:
+跑一次高召回初筛：
 
 ```bash
 paper-reach screen \
@@ -68,7 +68,7 @@ paper-reach screen \
   --retrieval-limit 200
 ```
 
-Run the full workflow and save all intermediate outputs:
+跑完整流程，并保存所有中间结果：
 
 ```bash
 paper-reach run \
@@ -80,7 +80,7 @@ paper-reach run \
   --workers 8
 ```
 
-Export a human-readable shortlist:
+导出适合人工查看的 shortlist：
 
 ```bash
 paper-reach summarize \
@@ -90,7 +90,7 @@ paper-reach summarize \
   --top-k 20
 ```
 
-The bundled run directory looks like this:
+`bundle-dir` 目录大概长这样：
 
 ```text
 runs/demo/
@@ -104,7 +104,7 @@ runs/demo/
 └─ downloads/
 ```
 
-> Already installed? Update is just a normal `git pull` plus reinstall if needed:
+> 如果已经安装过，更新通常就是：
 >
 > ```bash
 > git pull
@@ -115,9 +115,11 @@ runs/demo/
 
 ## English
 
-The repository default is English.
+Paper-Reach is an open-source skill + CLI for literature search, abstract screening, full-text review, evidence extraction, and conservative ranking.
 
-This README, the CLI, the JSON schema, and the main documentation are designed to be readable for international users. The project can still be used in Chinese-language workflows, but the public-facing repository should stay English-first.
+It is designed for coding agents such as Codex, Claude Code, OpenClaw, Cursor, and similar tools, while also working as a standalone Python CLI.
+
+The repository default is Chinese for the landing page, but the project remains usable for international contributors and agent workflows.
 
 Typical message to an agent:
 
@@ -127,33 +129,33 @@ Install and use Paper-Reach from this repository. Run a high-recall literature s
 
 ---
 
-## Supported Platforms
+## 支持平台
 
-| Platform | Works now | Better with configuration | How to enable |
+| 平台 | 现在可用 | 配置后更强 | 怎么开启 |
 |---|---|---|---|
-| **OpenAlex** | Metadata retrieval, abstract screening | Official content API PDF download | Set `OPENALEX_API_KEY` |
-| **arXiv** | Search and metadata retrieval | PDF / local review | No extra setup |
-| **Local PDFs / TXT / JSON** | Offline screening and review | Stronger local evidence extraction | No extra setup |
-| **Publisher landing pages** | Best-effort OA fallback | Session reuse for gated content | Provide cookies / headers |
-| **Codex / OpenAI-style hosts** | Skill discovery + CLI use | Bundle install | `bash scripts/sync.sh` |
-| **Claude-style hosts** | Skill discovery + CLI use | Bundle install | `bash scripts/sync.sh` |
-| **Gemini-style hosts** | Extension metadata included | Bundle install | `bash scripts/sync.sh` |
+| **OpenAlex** | Metadata 检索、摘要初筛 | 官方 content API PDF 下载 | 设置 `OPENALEX_API_KEY` |
+| **arXiv** | 搜索和 metadata 检索 | PDF / 本地 review | 无需额外配置 |
+| **本地 PDF / TXT / JSON** | 离线筛选与 review | 更强的本地证据提取 | 无需额外配置 |
+| **出版社落地页** | best-effort OA 回退 | 登录态 session 复用 | 提供 cookies / headers |
+| **Codex / OpenAI 风格宿主** | Skill 发现 + CLI 调用 | bundle 安装 | `bash scripts/sync.sh` |
+| **Claude 风格宿主** | Skill 发现 + CLI 调用 | bundle 安装 | `bash scripts/sync.sh` |
+| **Gemini 风格宿主** | 已提供 extension metadata | bundle 安装 | `bash scripts/sync.sh` |
 
-### Cookie-Based Access for Scholarly Platforms
+### 需要 Cookie 的学术平台怎么处理
 
-Some scholarly platforms require login or an institution-backed browser session.
+有些学术平台需要登录状态，或者依赖机构浏览器会话。
 
-For platforms that need cookies, the most practical setup is:
+对这类平台，最实用的方式是：
 
-**browser login -> Cookie-Editor export -> send cookies to the agent -> run Paper-Reach**
+**浏览器登录 -> 用 Cookie-Editor 导出 Cookie -> 交给 Agent / Paper-Reach 使用**
 
-Recommended approach:
+推荐流程：
 
-- log into the publisher site in Chrome
-- use the Chrome extension `Cookie-Editor` to export cookies
-- pass the cookie file to Paper-Reach
+- 在 Chrome 里登录目标出版社或平台
+- 用 Chrome 插件 `Cookie-Editor` 导出 Cookie
+- 把 Cookie 文件作为 `--cookie-file` 传给 Paper-Reach
 
-Example:
+示例：
 
 ```bash
 paper-reach fetch-fulltext \
@@ -163,67 +165,67 @@ paper-reach fetch-fulltext \
   --cookie-file ./cookies.json
 ```
 
-This is usually simpler and more reliable than trying to automate login or browser verification flows.
+这通常比自动模拟登录或反复做人机验证更简单，也更稳定。
 
-Cookie handling principles:
+Cookie 处理原则：
 
-- cookies stay local
-- cookies are never required for the core workflow
-- if cookies are missing or invalid, Paper-Reach falls back gracefully
+- Cookie 留在本地
+- 核心工作流不强依赖 Cookie
+- Cookie 缺失或失效时，Paper-Reach 会自动回退
 
-For details, see [docs/browser-cookies.md](docs/browser-cookies.md).
-
----
-
-## Design Philosophy
-
-Paper-Reach is not a heavyweight autonomous research framework.
-
-It is a practical starter repo for literature workflow scaffolding.
-
-The main design principles are:
-
-- **Search is easy, screening is hard**
-  - the value is in better screening, not just more sources
-- **Weak evidence stays weak**
-  - title-only relevance must not be overclaimed
-- **Abstract and full text are different evidence levels**
-  - abstract support is useful, but full-text support is stronger
-- **Offline mode matters**
-  - the workflow must still work with local PDFs, metadata files, and DOI lists
-- **JSON first**
-  - outputs should be reusable by agents and scripts
-- **Human review still matters**
-  - the project should produce shortlists that people can actually inspect
-
-### What Paper-Reach Is
-
-- a reusable literature workflow for AI agents
-- a Python CLI
-- a skill bundle for multiple agent hosts
-- a starter scaffold for literature review and research-gap analysis
-
-### What Paper-Reach Is Not
-
-- a giant autonomous multi-agent system
-- a promise that every paper can always be downloaded
-- a black-box ranking engine with hidden logic
+详情见 [docs/browser-cookies.md](docs/browser-cookies.md)。
 
 ---
 
-## Core Capabilities
+## 设计理念
 
-- High-recall literature retrieval with query expansion
-- Conservative abstract screening with explainable reasons
-- Full-text review when PDFs are available
-- OpenAlex-first content download with graceful fallback
-- Profile-based ranking with hard gates and weighted dimensions
-- Compact output modes for humans: `titles` and `brief`
-- Structured full JSON output for agents and downstream analysis
+Paper-Reach 不是一个重型自治研究框架。
 
-## A Concrete Example
+它是一个实用的文献工作流 starter repo / scaffolding。
 
-Here is a realistic query:
+它的核心设计原则是：
+
+- **搜索不难，筛选更难**
+  - 真正的价值在于筛得更准，而不是源更多
+- **弱证据就该保持弱**
+  - 不能把标题相关直接说成“已确认”
+- **摘要和全文是不同证据层级**
+  - 摘要支持有用，但全文支持更强
+- **离线模式很重要**
+  - 必须能处理本地 PDF、metadata、DOI 列表
+- **JSON 优先**
+  - 输出要适合 agent 和脚本继续消费
+- **人工复核依然重要**
+  - 最终应该产出人真正能看的 shortlist
+
+### Paper-Reach 是什么
+
+- 一个给 AI Agent 复用的文献工作流
+- 一个 Python CLI
+- 一个适配多宿主的 skill bundle
+- 一个适合 literature review / gap analysis 的 starter scaffold
+
+### Paper-Reach 不是什么
+
+- 不是一个庞大的自治 multi-agent 系统
+- 不承诺每篇论文都一定能下载
+- 不是一个黑盒排序器
+
+---
+
+## 核心能力
+
+- 高召回文献检索与 query expansion
+- 保守的摘要级初筛与 explainable reasons
+- PDF 可用时的全文 review
+- OpenAlex 优先下载与自动回退
+- profile-based ranking，支持硬门槛和加权维度
+- 面向人的紧凑输出：`titles` 与 `brief`
+- 面向 agent 的结构化完整 JSON 输出
+
+## 一个具体示例
+
+下面是一个真实可用的 query：
 
 ```json
 {
@@ -263,40 +265,40 @@ Here is a realistic query:
 }
 ```
 
-## OpenAlex-First Full-Text Fetching
+## OpenAlex 优先下载
 
-If `OPENALEX_API_KEY` or `OPENALEX_CONTENT_API_KEY` is configured, Paper-Reach tries the OpenAlex content API first:
+如果配置了 `OPENALEX_API_KEY` 或 `OPENALEX_CONTENT_API_KEY`，Paper-Reach 会优先尝试 OpenAlex content API：
 
 ```bash
 export OPENALEX_API_KEY=your_key
 ```
 
-Download priority:
+下载优先级：
 
 1. OpenAlex content API
 2. open-access PDF URL
-3. landing page extraction
-4. cookie / header session reuse
-5. abstract-only fallback
+3. 落地页提取
+4. cookie / header session 复用
+5. 回退到摘要级 review
 
-This means the OpenAlex API key is optional, not required.
+也就是说，OpenAlex API key 是增强项，不是硬依赖。
 
-## Multi-Host Skill Support
+## 多宿主 Skill 支持
 
-Paper-Reach follows the same pattern used by mature cross-host skill repos:
+Paper-Reach 采用和成熟跨宿主 skill 项目类似的结构：
 
-- one shared execution engine
+- 一个共享执行引擎
   - `paper-reach` CLI + `paper_reach/`
-- one host-agnostic skill entrypoint
+- 一个宿主无关的 skill 入口
   - `SKILL.md`
-- thin host-specific manifests
+- 几个宿主专用的轻量 manifest
   - `agents/openai.yaml`
   - `.claude-plugin/plugin.json`
   - `gemini-extension.json`
 
-This keeps the workflow logic in one place while making the skill discoverable across different agent ecosystems.
+这样可以把核心逻辑放在一处，同时让不同 agent 宿主都能发现和调用它。
 
-## Repository Structure
+## 仓库结构
 
 ```text
 paper-reach/
@@ -313,7 +315,7 @@ paper-reach/
 └─ tests/
 ```
 
-## Documentation
+## 文档
 
 - [docs/install.md](docs/install.md)
 - [docs/usage.md](docs/usage.md)
@@ -323,18 +325,12 @@ paper-reach/
 - [docs/publishing.md](docs/publishing.md)
 - [docs/roadmap.md](docs/roadmap.md)
 
-## What I Would Still Improve
+## 后续还值得继续优化的地方
 
-After looking at the overall shape of `Agent-Reach`, the most useful next improvements for `Paper-Reach` are:
-
-- make installation even more one-shot
-  - for example, a raw install doc that an agent can follow directly
-- make the homepage more outcome-oriented
-  - show what users get, not just what modules exist
-- keep “configuration with cookies” visible and practical
-  - this matters a lot for real publisher workflows
-- continue improving shortlist quality
-  - better final ranking matters more than adding more backends
+- 安装体验还能更一键化
+- 首页还能更强调结果导向
+- Cookie 配置可以再做得更“照着就能用”
+- shortlist 质量还值得继续提升
 
 ## Contributing
 
