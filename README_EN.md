@@ -1,40 +1,50 @@
-# Paper-Reach
+<div align="center">
 
-Give your AI agent a rigorous literature review workflow.
+# 👁️ Paper-Reach
 
-`Paper-Reach` is an open-source skill + CLI for literature search, abstract screening, full-text review, evidence extraction, and conservative ranking.
+Give your AI agent a more rigorous literature search and screening workflow
 
-It is built for coding agents such as Codex, Claude Code, OpenClaw, Cursor, and similar tools, but it also works as a standalone Python CLI.
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](pyproject.toml)
+[![GitHub Stars](https://img.shields.io/github/stars/Dai0-2/Paper_Reach?style=social)](https://github.com/Dai0-2/Paper_Reach)
 
-[Quick Start](#quick-start) · [Chinese](README.md) · [Supported Platforms](#supported-platforms) · [Design Philosophy](#design-philosophy)
+[Quick Start](#quick-start) · [中文](README.md) · [Supported Platforms](#supported-platforms) · [Design Philosophy](#design-philosophy)
+
+</div>
 
 ---
 
 ## Why Paper-Reach?
 
+`Paper-Reach` is an open-source Skill + CLI for literature retrieval, abstract screening, full-text review, evidence extraction, and conservative ranking.
+
+It is designed for AI coding agents such as Codex, Claude Code, OpenClaw, and Cursor, while also working as a standalone Python CLI.
+
+The point is not “search more sources.” The point is “screen papers better with evidence.”
+
 AI agents can already write code, edit docs, and manage repositories. But once you ask them to do a real literature review, they usually break down:
 
-- "Find papers on this topic and keep only the ones that actually match my criteria." -> They overclaim from titles.
-- "Tell me which papers really use this dataset or supervision signal." -> Abstract evidence is often too weak.
-- "Download the paper and confirm the method." -> PDF access fails, and the workflow stalls.
-- "Give me a shortlist I can actually read." -> The output is a giant JSON blob.
+- “Find papers that truly match my criteria.” -> They overclaim from titles.
+- “Tell me which papers actually use this dataset or supervision signal.” -> Abstract evidence is often too weak.
+- “Download the paper and confirm the method.” -> PDF access fails, and the workflow stalls.
+- “Give me a shortlist I can actually inspect.” -> The output becomes a giant JSON blob.
 
 The hard part is not search. The hard part is **evidence-based screening**.
 
-Paper-Reach turns that into a repeatable workflow:
+Paper-Reach turns that into a reusable workflow:
 
 1. retrieve a large candidate pool
 2. screen conservatively at abstract level
 3. fetch full text when possible
 4. review with stronger evidence
-5. export both machine-readable and human-readable outputs
+5. export results for both agents and humans
 
 ### Before You Use It
 
 | Item | What it means |
 |---|---|
 | **Conservative by default** | Title-only relevance is never treated as strong evidence |
-| **Agent-friendly** | Works as a CLI and as a reusable skill bundle |
+| **Agent-friendly** | Works both as a CLI and as a reusable skill bundle |
 | **Graceful fallback** | If full text cannot be downloaded, the workflow still remains useful |
 | **Human-readable output** | You get `brief` and `titles` exports, not just giant JSON |
 | **Extensible** | Search backends, parsers, ranking profiles, and fetch logic are pluggable |
@@ -80,7 +90,7 @@ paper-reach run \
   --workers 8
 ```
 
-Export a human-readable shortlist:
+Export a shortlist for manual review:
 
 ```bash
 paper-reach summarize \
@@ -89,6 +99,27 @@ paper-reach summarize \
   --format brief \
   --top-k 20
 ```
+
+The `bundle-dir` layout looks like this:
+
+```text
+runs/demo/
+├─ 00_query.json
+├─ 10_screen.json
+├─ 20_fetched_papers.json
+├─ 30_result_full.json
+├─ 40_result_brief.json
+├─ 50_result_titles.json
+├─ manifest.json
+└─ downloads/
+```
+
+> Already installed? Updating is usually just:
+>
+> ```bash
+> git pull
+> pip install -e .[dev]
+> ```
 
 ---
 
@@ -99,24 +130,23 @@ paper-reach summarize \
 | **OpenAlex** | Metadata retrieval, abstract screening | Official content API PDF download | Set `OPENALEX_API_KEY` |
 | **arXiv** | Search and metadata retrieval | PDF / local review | No extra setup |
 | **Local PDFs / TXT / JSON** | Offline screening and review | Stronger local evidence extraction | No extra setup |
-| **Publisher landing pages** | Best-effort OA fallback | Session reuse for gated content | Provide cookies / headers |
-| **Codex / OpenAI-style hosts** | Skill discovery + CLI use | Bundle install | `bash scripts/sync.sh` |
-| **Claude-style hosts** | Skill discovery + CLI use | Bundle install | `bash scripts/sync.sh` |
-| **Gemini-style hosts** | Extension metadata included | Bundle install | `bash scripts/sync.sh` |
+| **Codex / OpenAI** | Skill discovery + CLI use | Bundle install | `bash scripts/sync.sh` |
+| **Claude** | Skill discovery + CLI use | Bundle install | `bash scripts/sync.sh` |
+| **Gemini** | Extension metadata included | Bundle install | `bash scripts/sync.sh` |
 
-### Cookie-Based Access for Scholarly Platforms
+### How to Handle Cookie-Based Scholarly Platforms
 
-Some scholarly platforms require login or an institution-backed browser session.
+Some scholarly platforms require login state or an institution-backed browser session.
 
-For platforms that need cookies, the most practical setup is:
+For these platforms, the most practical approach is:
 
-**browser login -> Cookie-Editor export -> send cookies to the agent -> run Paper-Reach**
+**browser login -> Cookie-Editor export -> pass cookies to the agent / Paper-Reach**
 
-Recommended approach:
+Recommended flow:
 
-- log into the publisher site in Chrome
-- use the Chrome extension `Cookie-Editor` to export cookies
-- pass the cookie file to Paper-Reach
+- sign in to the publisher platform in Chrome
+- export cookies using the Chrome extension `Cookie-Editor`
+- pass the cookie file to Paper-Reach with `--cookie-file`
 
 Example:
 
@@ -128,7 +158,15 @@ paper-reach fetch-fulltext \
   --cookie-file ./cookies.json
 ```
 
-For details, see [docs/browser-cookies.md](docs/browser-cookies.md).
+This is usually simpler and more reliable than trying to automate login or browser verification.
+
+Cookie handling principles:
+
+- cookies stay local
+- cookies are never required for the core workflow
+- if cookies are missing or invalid, Paper-Reach falls back gracefully
+
+See [docs/browser-cookies.md](docs/browser-cookies.md) for details.
 
 ---
 
@@ -138,20 +176,26 @@ Paper-Reach is not a heavyweight autonomous research framework.
 
 It is a practical starter repo for literature workflow scaffolding.
 
-The main design principles are:
+Its core principles are:
 
 - **Search is easy, screening is hard**
+  - the value is in better screening, not just more sources
 - **Weak evidence stays weak**
+  - title-only relevance must not be overclaimed
 - **Abstract and full text are different evidence levels**
+  - abstract support is useful, but full-text support is stronger
 - **Offline mode matters**
+  - the workflow must still work with local PDFs, metadata files, and DOI lists
 - **JSON first**
+  - outputs should be reusable by agents and scripts
 - **Human review still matters**
+  - the project should produce shortlists that people can actually inspect
 
 ### What Paper-Reach Is
 
 - a reusable literature workflow for AI agents
 - a Python CLI
-- a skill bundle for multiple agent hosts
+- a multi-host skill bundle
 - a starter scaffold for literature review and research-gap analysis
 
 ### What Paper-Reach Is Not
@@ -167,12 +211,54 @@ The main design principles are:
 - High-recall literature retrieval with query expansion
 - Conservative abstract screening with explainable reasons
 - Full-text review when PDFs are available
-- OpenAlex-first content download with graceful fallback
+- OpenAlex-first download with automatic fallback
 - Profile-based ranking with hard gates and weighted dimensions
-- Compact exports for humans: `titles` and `brief`
+- Compact human-facing outputs: `titles` and `brief`
 - Structured full JSON output for agents and downstream analysis
 
-## OpenAlex-First Full-Text Fetching
+## A Concrete Example
+
+Here is a realistic query:
+
+```json
+{
+  "topic": "China static population exposure assessment for disasters and infectious disease",
+  "keywords": [
+    "China",
+    "static population",
+    "gridded population",
+    "census population",
+    "population exposure",
+    "population at risk",
+    "disaster exposure",
+    "hazard exposure",
+    "infectious disease exposure",
+    "WorldPop",
+    "LandScan",
+    "GPW"
+  ],
+  "inclusion_criteria": [
+    "study area is in China",
+    "uses static population data or gridded population as exposure input",
+    "focuses on disaster exposure or infectious-disease exposure",
+    "estimates exposed population or population at risk"
+  ],
+  "exclusion_criteria": [
+    "study area outside China only",
+    "not an exposure study",
+    "generic epidemiology without exposure modeling",
+    "dynamic mobility only without static population baseline"
+  ],
+  "year_range": [2005, 2026],
+  "max_results": 200,
+  "need_gap_analysis": true,
+  "mode": "auto",
+  "require_fulltext_for_selection": false,
+  "profile": "static_population_exposure_baseline"
+}
+```
+
+## OpenAlex-First Download
 
 If `OPENALEX_API_KEY` or `OPENALEX_CONTENT_API_KEY` is configured, Paper-Reach will try the OpenAlex content API first:
 
@@ -188,7 +274,22 @@ Download priority:
 4. cookie / header session reuse
 5. abstract-only fallback
 
-This means the OpenAlex API key is optional, not required.
+The OpenAlex API key is an enhancement, not a hard requirement.
+
+## Multi-Host Skill Support
+
+Paper-Reach follows the same structure used by mature cross-host skill projects:
+
+- one shared execution engine
+  - `paper-reach` CLI + `paper_reach/`
+- one host-agnostic skill entrypoint
+  - `SKILL.md`
+- several host-specific lightweight manifests
+  - `agents/openai.yaml`
+  - `.claude-plugin/plugin.json`
+  - `gemini-extension.json`
+
+This keeps the core logic in one place while making the skill discoverable across different agent ecosystems.
 
 ## Repository Structure
 
