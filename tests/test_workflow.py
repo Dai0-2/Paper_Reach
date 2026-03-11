@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from paper_reach.models import QueryInput
-from paper_reach.workflow import review_workflow, run_workflow, screen_workflow
+from paper_reach.workflow import _build_adaptive_shortlist, review_workflow, run_workflow, screen_workflow
 
 
 def test_workflow_with_mock_source() -> None:
@@ -117,3 +117,41 @@ def test_parallel_workflow_paths_still_work() -> None:
     assert len(result.ambiguous) == 1
     assert result.query_summary["review_attempted_count"] == 2
     assert len(result.top_ranked) >= 1
+
+
+def test_adaptive_shortlist_expands_with_near_misses() -> None:
+    from paper_reach.models import ScreeningResult
+
+    strict = ScreeningResult(
+        id="strict",
+        title="Strict Match",
+        source="openalex",
+        relevance_score=9,
+        decision="ambiguous",
+        hard_filter_passed=True,
+        venue_tier_inferred="Q1-like",
+    )
+    near_miss = ScreeningResult(
+        id="near",
+        title="Near Miss",
+        source="openalex",
+        relevance_score=8,
+        decision="rejected",
+        hard_filter_passed=False,
+        violated_criteria=["study area is in China"],
+        venue_tier_inferred="unknown",
+    )
+    mdpi = ScreeningResult(
+        id="mdpi",
+        title="MDPI Paper",
+        source="openalex",
+        relevance_score=10,
+        decision="rejected",
+        hard_filter_passed=False,
+        violated_criteria=["Venue policy excluded publisher or venue match: MDPI."],
+        venue_tier_inferred="excluded",
+    )
+    shortlist = _build_adaptive_shortlist([strict, near_miss, mdpi], min_items=2, max_items=20)
+    assert [item.id for item in shortlist] == ["strict", "near"]
+    assert shortlist[0].shortlist_tier == "strict_match"
+    assert shortlist[1].shortlist_tier == "near_miss"

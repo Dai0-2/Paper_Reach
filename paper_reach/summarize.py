@@ -20,7 +20,10 @@ def summarize_workflow_output(
     top_k: int | None = None,
 ) -> List[Dict[str, object]]:
     """Return a compact list view of selected workflow results."""
-    papers = list(workflow.top_ranked) or (list(workflow.selected) + list(workflow.ambiguous))
+    if workflow.top_ranked:
+        papers = list(workflow.top_ranked)
+    else:
+        papers = list(workflow.selected) + list(workflow.ambiguous)
     if include_rejected:
         papers.extend(workflow.rejected)
     papers.sort(key=lambda paper: paper.relevance_score, reverse=True)
@@ -37,6 +40,7 @@ def _to_title_item(paper: ScreeningResult) -> Dict[str, object]:
     return {
         "title": paper.title,
         "url": paper.url,
+        "shortlist_tier": paper.shortlist_tier,
     }
 
 
@@ -51,6 +55,8 @@ def _to_brief_item(paper: ScreeningResult) -> Dict[str, object]:
         "venue": paper.venue,
         "venue_tier_inferred": paper.venue_tier_inferred,
         "venue_tier_confidence": paper.venue_tier_confidence,
+        "shortlist_tier": paper.shortlist_tier,
+        "shortlist_reason": paper.shortlist_reason,
         "study_area": findings.get("study_area", []),
         "dataset": findings.get("dataset", []),
         "task": findings.get("task", []),

@@ -115,6 +115,19 @@
           "type": ["string", "null"],
           "enum": ["high", "medium", "low", null]
         },
+        "violated_criteria": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "hard_filter_passed": {
+          "type": "boolean"
+        },
+        "shortlist_tier": {
+          "type": ["string", "null"]
+        },
+        "shortlist_reason": {
+          "type": ["string", "null"]
+        },
         "stage": {
           "type": "string",
           "enum": ["screen", "review"]
@@ -134,6 +147,10 @@
         "need_fulltext",
         "fulltext_status",
         "review_ready",
+        "violated_criteria",
+        "hard_filter_passed",
+        "shortlist_tier",
+        "shortlist_reason",
         "stage"
       ]
     }

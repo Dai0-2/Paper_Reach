@@ -119,6 +119,10 @@ class ScreeningResult(BaseModel):
     stage: Stage = "screen"
     venue_tier_inferred: Optional[VenueTier] = None
     venue_tier_confidence: Optional[VenueConfidence] = None
+    violated_criteria: List[str] = Field(default_factory=list)
+    hard_filter_passed: bool = True
+    shortlist_tier: Optional[str] = None
+    shortlist_reason: Optional[str] = None
 
 
 class RankingResult(BaseModel):

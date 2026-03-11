@@ -185,8 +185,7 @@ def review_workflow(
         for result in reviewed_results
         if result.fulltext_status in {"available", "local_only"} or result.pdf_path
     ]
-    shortlist_source = downloaded_reviewed or reviewed_results
-    top_ranked = sorted(shortlist_source, key=lambda item: item.relevance_score, reverse=True)[:20]
+    top_ranked = _build_adaptive_shortlist(reviewed_results, min_items=10, max_items=20)
     query_summary = {
         "topic": query.topic,
         "mode": query.mode,
@@ -213,6 +212,77 @@ def review_workflow(
         gap_analysis=gap_analysis if query.need_gap_analysis else [],
         recommended_next_queries=recommended_next_queries,
     )
+
+
+def _build_adaptive_shortlist(
+    reviewed_results: Sequence[ScreeningResult],
+    *,
+    min_items: int = 10,
+    max_items: int = 20,
+) -> List[ScreeningResult]:
+    strict = [
+        item for item in reviewed_results
+        if item.hard_filter_passed and item.venue_tier_inferred != "excluded"
+    ]
+    near_miss = [
+        item for item in reviewed_results
+        if item.venue_tier_inferred != "excluded"
+        and not item.hard_filter_passed
+        and len(item.violated_criteria) <= 1
+        and item.relevance_score >= 5
+    ]
+    high_score = [
+        item for item in reviewed_results
+        if item.venue_tier_inferred != "excluded"
+        and item.relevance_score >= 4
+    ]
+
+    ordered: List[ScreeningResult] = []
+    seen: set[str] = set()
+
+    def add_pool(pool: Sequence[ScreeningResult], tier: str) -> None:
+        for item in sorted(
+            pool,
+            key=lambda result: (
+                result.relevance_score,
+                1 if (result.fulltext_status in {"available", "local_only"} or result.pdf_path) else 0,
+                -len(result.violated_criteria),
+            ),
+            reverse=True,
+        ):
+            if item.id in seen:
+                continue
+            seen.add(item.id)
+            ordered.append(
+                item.model_copy(
+                    update={
+                        "shortlist_tier": tier,
+                        "shortlist_reason": _shortlist_reason(item, tier),
+                    }
+                )
+            )
+            if len(ordered) >= max_items:
+                return
+
+    add_pool(strict, "strict_match")
+    if len(ordered) < min_items:
+        add_pool(near_miss, "near_miss")
+    if len(ordered) < min_items:
+        add_pool(high_score, "score_fill")
+
+    return ordered[:max_items]
+
+
+def _shortlist_reason(item: ScreeningResult, tier: str) -> str:
+    if tier == "strict_match":
+        return "Passed hard filters and ranked highly by the composite score."
+    if tier == "near_miss":
+        if item.violated_criteria:
+            return f"Included as a near miss with one recoverable gap: {item.violated_criteria[0]}."
+        return "Included as a near miss because the paper scored well despite a minor gap."
+    if item.fulltext_status in {"available", "local_only"} or item.pdf_path:
+        return "Included to fill the shortlist based on high score and available full text."
+    return "Included to fill the shortlist based on high relevance score."
 
 
 def _default_channel_names(query: QueryInput) -> List[str]:
@@ -348,6 +418,8 @@ def _review_single_paper(query: QueryInput, paper: PaperMetadata) -> ScreeningRe
         stage="review",
         venue_tier_inferred=ranking.venue_tier_inferred,
         venue_tier_confidence=ranking.venue_tier_confidence,
+        violated_criteria=ranking.violated_criteria,
+        hard_filter_passed=not bool(ranking.violated_criteria),
     )
 
 

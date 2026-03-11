@@ -18,7 +18,7 @@ def test_titles_summary_keeps_only_title_and_url() -> None:
         ],
     )
     payload = summarize_workflow_output(workflow, format="titles")
-    assert payload == [{"title": "Demo Paper", "url": "https://example.org/p1"}]
+    assert payload == [{"title": "Demo Paper", "url": "https://example.org/p1", "shortlist_tier": None}]
 
 
 def test_brief_summary_includes_core_screening_fields() -> None:
@@ -74,7 +74,7 @@ def test_summary_can_filter_and_limit() -> None:
         ],
     )
     payload = summarize_workflow_output(workflow, format="titles", decision="ambiguous", top_k=1)
-    assert payload == [{"title": "Ambiguous Paper", "url": "https://example.org/p2"}]
+    assert payload == [{"title": "Ambiguous Paper", "url": "https://example.org/p2", "shortlist_tier": None}]
 
 
 def test_summary_sorts_by_score_descending() -> None:
@@ -130,4 +130,33 @@ def test_summary_prefers_top_ranked_when_present() -> None:
         ],
     )
     payload = summarize_workflow_output(workflow, format="titles")
-    assert payload == [{"title": "Downloaded Winner", "url": "https://example.org/p9"}]
+    assert payload == [{"title": "Downloaded Winner", "url": "https://example.org/p9", "shortlist_tier": None}]
+
+
+def test_summary_keeps_top_ranked_even_if_rejected() -> None:
+    workflow = WorkflowOutput(
+        query_summary={"topic": "demo"},
+        top_ranked=[
+            ScreeningResult(
+                id="p1",
+                title="Rejected Paper",
+                source="openalex",
+                url="https://example.org/p1",
+                relevance_score=10,
+                decision="rejected",
+            ),
+            ScreeningResult(
+                id="p2",
+                title="Kept Paper",
+                source="openalex",
+                url="https://example.org/p2",
+                relevance_score=9,
+                decision="ambiguous",
+            ),
+        ],
+    )
+    payload = summarize_workflow_output(workflow, format="titles")
+    assert payload == [
+        {"title": "Rejected Paper", "url": "https://example.org/p1", "shortlist_tier": None},
+        {"title": "Kept Paper", "url": "https://example.org/p2", "shortlist_tier": None},
+    ]
