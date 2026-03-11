@@ -20,7 +20,6 @@
 
 它适用于 Codex、Claude Code、OpenClaw、Cursor 等智能编码代理，也可以单独作为一个 Python CLI 使用。
 
-它的重点不是“再多搜几个来源”，而是“基于证据更严谨地筛论文”。
 
 AI Agent 已经能写代码、改文档、管仓库了，但一旦进入真实文献综述流程，通常就会出问题：
 
@@ -100,7 +99,7 @@ paper-reach summarize \
   --top-k 20
 ```
 
-`bundle-dir` 目录大概长这样：
+`bundle-dir` 目录：
 
 ```text
 runs/demo/
@@ -130,10 +129,9 @@ runs/demo/
 | **OpenAlex** | Metadata 检索、摘要初筛 | 官方 content API PDF 下载 | 设置 `OPENALEX_API_KEY` |
 | **arXiv** | 搜索和 metadata 检索 | PDF / 本地 review | 无需额外配置 |
 | **本地 PDF / TXT / JSON** | 离线筛选与 review | 更强的本地证据提取 | 无需额外配置 |
-| **出版社落地页** | best-effort OA 回退 | 登录态 session 复用 | 提供 cookies / headers |
-| **Codex / OpenAI 风格宿主** | Skill 发现 + CLI 调用 | bundle 安装 | `bash scripts/sync.sh` |
-| **Claude 风格宿主** | Skill 发现 + CLI 调用 | bundle 安装 | `bash scripts/sync.sh` |
-| **Gemini 风格宿主** | 已提供 extension metadata | bundle 安装 | `bash scripts/sync.sh` |
+| **Codex / OpenAI ** | Skill 发现 + CLI 调用 | bundle 安装 | `bash scripts/sync.sh` |
+| **Claude ** | Skill 发现 + CLI 调用 | bundle 安装 | `bash scripts/sync.sh` |
+| **Gemini ** | 已提供 extension metadata | bundle 安装 | `bash scripts/sync.sh` |
 
 ### 需要 Cookie 的学术平台怎么处理
 
