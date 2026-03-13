@@ -1,3 +1,8 @@
+---
+name: paper-reader
+description: Read abstracts and, when available, full text to extract structured evidence for literature screening. Use when a paper is ambiguous after abstract screening or the user needs method, dataset, supervision, or limitation details.
+---
+
 # paper-reader
 
 ## Name

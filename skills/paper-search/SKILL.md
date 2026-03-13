@@ -1,3 +1,8 @@
+---
+name: paper-search
+description: Retrieve candidate papers and perform conservative coarse screening using title and abstract evidence. Use when the user needs a candidate paper set, abstract-level screening, or a first-pass shortlist before full-text review.
+---
+
 # paper-search
 
 ## Name

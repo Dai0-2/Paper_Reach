@@ -1,3 +1,8 @@
+---
+name: paper-ranker
+description: Apply a conservative screening rubric to rank papers and separate selected, ambiguous, and rejected items with reasons and evidence references. Use when a candidate set already exists and final ranking or grouping is needed.
+---
+
 # paper-ranker
 
 ## Name
