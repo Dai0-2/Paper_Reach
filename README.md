@@ -1,105 +1,106 @@
-<div align="center">
+<h1 align="center">Paper-Reach</h1>
 
-# 👁️ Paper-Reach
+<p align="center">
+  <strong>Give your AI agent a rigorous literature review workflow.</strong>
+</p>
 
-给你的 AI Agent 一套更严谨的文献检索、筛选、阅读与证据提取工作流
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10+-green.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+"></a>
+  <img src="https://img.shields.io/badge/Skill-Codex%20%7C%20Claude%20%7C%20OpenClaw-black.svg?style=for-the-badge" alt="Agent Skill">
+</p>
 
-[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](pyproject.toml)
-[![GitHub Stars](https://img.shields.io/github/stars/Dai0-2/Paper_Reach?style=social)](https://github.com/Dai0-2/Paper_Reach)
-
-[快速开始](#快速开始) · [English](README_EN.md) · [支持平台](#支持平台) · [设计理念](#设计理念)
-
-</div>
+<p align="center">
+  <a href="#quick-start">快速开始</a> · <a href="#english">English</a> · <a href="#supported-platforms">支持平台</a> · <a href="#design-philosophy">设计理念</a>
+</p>
 
 ---
 
-## 为什么做 Paper-Reach？
+## English
 
-`Paper-Reach` 是一个开源 Skill + CLI 工具，用来帮助 Codex、Claude Code、OpenClaw、Cursor 等智能编码代理完成文献检索、摘要初筛、全文细筛、证据提取和保守排序。
+`Paper-Reach` is an open-source skill + CLI scaffold for literature search, abstract screening, full-text review, evidence extraction, and conservative ranking.
 
-它也可以作为普通 Python 命令行工具单独使用，不依赖某一个 Agent 平台。
+It is built for coding agents such as Codex, Claude Code, OpenClaw, Cursor, and similar tools, but it also works as a standalone Python CLI.
 
-这个项目的重点不是“搜索更多来源”，而是让 Agent **更可靠地筛选文献，并明确说明证据来自标题、摘要还是全文**。
+The goal is simple:
 
-AI Agent 已经很擅长写代码、改文档、跑命令，但一旦让它做真实的文献综述，常见问题就会出现：
+> Searching papers is easy. Screening papers with evidence is hard.
 
-- “帮我找真正符合条件的论文。” -> 容易只看标题就过度判断
-- “告诉我哪些论文真的用了某个数据集或方法。” -> 摘要证据经常不够
-- “下载全文并确认方法。” -> PDF 下载失败后流程容易卡住
-- “给我一份能直接看的 shortlist。” -> 输出经常变成一大坨 JSON
+Paper-Reach helps an AI agent do the literature-review workflow in a reproducible way:
 
-文献检索本身不难，真正难的是：
+- retrieve candidate papers from online or offline sources
+- screen papers conservatively using title, abstract, and metadata
+- fetch full text when available
+- review downloaded papers with stronger evidence
+- rank results with task-specific rubrics
+- export both full JSON and human-readable shortlists
 
-> 搜完之后，如何基于证据进行保守、可解释、可复查的筛选。
+---
 
-Paper-Reach 把它拆成一个可重复执行的流程：
+## Why Paper-Reach?
 
-1. 高召回检索候选文献
-2. 基于摘要做保守初筛
-3. 对可下载的论文尝试获取全文
-4. 对全文或摘要进行细筛
-5. 输出给 Agent 用的完整 JSON 和给人看的简版清单
+Most paper-search workflows fail in predictable ways:
+
+- A title looks relevant, but the abstract does not support the claim.
+- An abstract looks relevant, but the full text does not contain the required method, dataset, or study area.
+- Some papers cannot be downloaded, but the agent still acts as if it read them.
+- Final outputs are giant JSON files that humans cannot quickly inspect.
+
+Paper-Reach separates these stages explicitly:
+
+1. `screen`
+   - high-recall search and abstract-level screening
+2. `fetch-fulltext`
+   - PDF/full-text acquisition with graceful fallback
+3. `review`
+   - full-text-first review when possible, abstract-level review otherwise
+4. `summarize`
+   - compact `titles` or `brief` output for human review
+
+---
 
 ## What's New
 
-- OpenAlex content API：配置 API key 后优先走官方全文接口
-- `run --bundle-dir`：一次输出完整运行文件夹，包含每个阶段结果
-- `summarize`：支持导出 `titles` 和 `brief` 两种精炼结果
-- profile-based ranking：支持任务专属硬门槛和加权评分
-- 多宿主 Skill 元数据：适配 Codex / Claude 风格 / Gemini 风格宿主
+- OpenAlex content API is used first when `OPENALEX_API_KEY` or `OPENALEX_CONTENT_API_KEY` is configured.
+- `run --bundle-dir` writes a complete run folder with each stage output.
+- `summarize` exports compact `titles` and `brief` views.
+- profile-based ranking supports task-specific hard gates and weighted scoring.
+- multi-host skill packaging is included for Codex, Claude-style, Gemini-style, and OpenClaw-style agent hosts.
 
 ---
 
-## 支持平台
+## Supported Platforms
 
-| 平台 / 来源 | 默认支持 | 可选增强 | 如何配置 |
-|---|---|---|---|
-| OpenAlex metadata | 是 | 更多全文下载 | 设置 `OPENALEX_API_KEY` |
-| OpenAlex full-text content API | 否 | 是 | 设置 `OPENALEX_API_KEY` 或 `OPENALEX_CONTENT_API_KEY` |
-| arXiv | 是 | PDF / 本地 review | 无需额外配置 |
-| 本地 PDF / TXT / JSON metadata | 是 | 离线证据抽取 | 使用 `--local-path` |
-| 出版社 landing page | 有限支持 | Cookie / Header 会话复用 | 使用 `--cookie-file` / `--header-file` |
-| Codex / Claude / OpenClaw 风格 Skill 宿主 | 是 | 同步到宿主 skill 目录 | 运行 `scripts/sync.sh` |
+### Agent Hosts
 
-### 需要 Cookie 的平台怎么处理？
+| Host | Status | How it works |
+|------|--------|--------------|
+| Codex / OpenAI-style agents | Supported | Uses `SKILL.md`, `AGENTS.md`, and `agents/openai.yaml` |
+| Claude Code / Claude-style skills | Supported | Uses `.claude-plugin/plugin.json` and skill bundle files |
+| OpenClaw-style agents | Supported | Uses the synced skill directory and CLI execution |
+| Cursor / Windsurf / similar coding agents | Supported | Works as a normal CLI plus readable skill instructions |
 
-有些出版社页面需要登录、机构访问权限，或者浏览器里已经通过的人机验证。对于这类平台，最推荐的方式不是让 Agent 自动登录，而是复用你浏览器里已经登录好的会话。
+### Literature Sources
 
-统一流程：
+| Source | Search | Full text | Notes |
+|--------|--------|-----------|-------|
+| OpenAlex | Supported | Best with API key | Uses metadata first, then OpenAlex content API when configured |
+| arXiv | Supported | Limited | Useful for preprints and technical papers |
+| Local files | Supported | Supported | PDFs, TXT files, metadata JSON, DOI/title lists |
+| Publisher landing pages | Fallback | Best effort | May fail on login walls, Cloudflare, or institutional restrictions |
+| User-provided cookies/headers | Optional | Supported | For user-authorized sessions only |
 
-`浏览器登录 -> Cookie-Editor 导出 -> 发给 Agent / 保存为 cookie 文件 -> Paper-Reach 使用 --cookie-file`
-
-推荐 Chrome 插件：
-
-- [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm)
-
-示例：
-
-```bash
-paper-reach fetch-fulltext \
-  --input query.json \
-  --output review.json \
-  --download-dir ./downloads \
-  --cookie-file ./cookies.json
-```
-
-为什么这样设计：
-
-- 比自动化登录更稳定
-- 比扫码流程更容易复用
-- 适合出版社、学校代理、机构访问等场景
-- Cookie 只在本地使用，不会被仓库上传
-
-详细说明见：[docs/browser-cookies.md](docs/browser-cookies.md)
+> Need full text from login-protected sites? Use the same pattern as web-agent tools:
+>
+> Browser login → export cookies with [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) → give the cookie file to your agent → run Paper-Reach with `--cookie-file`.
+>
+> This is usually more reliable than QR-code login flows and keeps credentials local. Cookies are sensitive credentials; use a dedicated account when possible and never commit cookie files to GitHub.
 
 ---
 
-## 快速开始
+## Quick Start
 
-先给 Agent 一个能跑通的文献筛选工作流，再去优化检索词、ranking profile 和输出格式。
-
-### 1. 安装
+### Install the CLI
 
 ```bash
 python -m venv .venv
@@ -108,21 +109,25 @@ pip install -e .[dev]
 paper-reach doctor
 ```
 
-### 2. 跑一轮高召回初筛
+### Install as an agent skill bundle
+
+```bash
+pip install -e .[dev]
+bash scripts/sync.sh
+bash scripts/check-install.sh
+```
+
+Common skill targets:
+
+- `~/.codex/skills/paper-reach`
+- `~/.claude/skills/paper-reach`
+- `~/.agents/skills/paper-reach`
+
+### Run a complete literature workflow
 
 ```bash
 paper-reach example-query > query.json
 
-paper-reach screen \
-  --input query.json \
-  --output screen.json \
-  --high-recall \
-  --retrieval-limit 200
-```
-
-### 3. 跑完整工作流
-
-```bash
 paper-reach run \
   --input query.json \
   --output result.json \
@@ -132,7 +137,21 @@ paper-reach run \
   --workers 8
 ```
 
-### 4. 导出可读 shortlist
+This produces:
+
+```text
+runs/demo/
+├─ 00_query.json
+├─ 10_screen.json
+├─ 20_fetched_papers.json
+├─ 30_result_full.json
+├─ 40_result_brief.json
+├─ 50_result_titles.json
+├─ manifest.json
+└─ downloads/
+```
+
+### Export a human-readable shortlist
 
 ```bash
 paper-reach summarize \
@@ -142,15 +161,23 @@ paper-reach summarize \
   --top-k 20
 ```
 
+Or export only titles and URLs:
+
+```bash
+paper-reach summarize \
+  --input result.json \
+  --output titles.json \
+  --format titles \
+  --top-k 20
+```
+
 ---
 
-## 示例任务
+## Example: Static Population Exposure Baseline
 
-假设你想找：
+Suppose you want to find papers that use static or gridded population data in China for disaster or infectious-disease exposure assessment. You want these papers as baselines for comparing dynamic population methods.
 
-> 在中国使用静态人口或栅格人口作为暴露输入的灾害暴露、流感暴露、传染病暴露论文，用来和动态人口方法做对照。
-
-示例 query：
+Example query:
 
 ```json
 {
@@ -190,105 +217,122 @@ paper-reach summarize \
 }
 ```
 
-## 输出结果长什么样？
-
-使用 `run --bundle-dir` 时，Paper-Reach 会输出一个完整结果包：
-
-```text
-runs/demo/
-├─ 00_query.json
-├─ 10_screen.json
-├─ 20_fetched_papers.json
-├─ 30_result_full.json
-├─ 40_result_brief.json
-├─ 50_result_titles.json
-├─ manifest.json
-└─ downloads/
-```
-
-文件含义：
-
-- `30_result_full.json`
-  - 完整机器可读结果
-  - 适合 Agent、调试和下游处理
-- `40_result_brief.json`
-  - 人类可读的精炼 review 清单
-  - 包含 title、URL、year、decision、reasons、venue、PDF path 等字段
-- `50_result_titles.json`
-  - 最小 shortlist，只包含 title + URL
-
-这样能同时满足：
-
-- Agent 需要结构化数据
-- 人需要快速浏览 shortlist
-
----
-
-## 多宿主 Skill 支持
-
-Paper-Reach 采用跨宿主包装结构：
-
-- 一个共享执行层
-  - `paper-reach` CLI + `paper_reach/` Python 包
-- 一个宿主无关 Skill 入口
-  - `SKILL.md`
-- 多个轻量宿主 manifest
-  - `agents/openai.yaml`
-  - `.claude-plugin/plugin.json`
-  - `gemini-extension.json`
-
-同步到常见宿主目录：
+Run:
 
 ```bash
-bash scripts/sync.sh
-bash scripts/check-install.sh
+paper-reach run \
+  --input query.json \
+  --output result.json \
+  --bundle-dir ./runs/china_static_population \
+  --high-recall \
+  --retrieval-limit 200 \
+  --workers 8
 ```
 
-默认目标：
+Expected workflow:
 
-- `~/.codex/skills/paper-reach`
-- `~/.claude/skills/paper-reach`
-- `~/.agents/skills/paper-reach`
-
----
-
-## 设计理念
-
-**Paper-Reach 是脚手架，不是重型框架。**
-
-这意味着：
-
-- 核心工作流应该保持模块化
-- 证据强弱必须在输出里可见
-- 标题相关不能当成强证据
-- 摘要初筛应该保守
-- 全文 review 用来增强证据，而不是制造确定性
-- 输出必须同时适合 Agent 和人类阅读
-
-这个仓库的目标是帮助 Agent 更好地筛选文献，而不是假装只要搜到了论文就已经理解了论文。
-
-### Paper-Reach 是什么
-
-- 文献检索和筛选工作流
-- Agent Skill 工具
-- Python CLI
-- JSON-first literature review scaffold
-
-### Paper-Reach 不是什么
-
-- 不是保证下载所有论文的爬虫
-- 不是绕过人机验证或付费墙的工具
-- 不是隐藏逻辑的黑盒排序器
-- 不是一上来就很重的多 Agent 平台
+- retrieve up to 200 candidate papers
+- keep plausible matches after abstract screening
+- download available full text using OpenAlex and open-access fallbacks
+- rank reviewed papers with the task profile
+- write both full results and compact top-ranked summaries
 
 ---
 
-## 仓库结构
+## Optional: OpenAlex Content API
+
+Paper-Reach works without an OpenAlex API key, but full-text retrieval is better with one.
+
+Configure either variable:
+
+```bash
+export OPENALEX_API_KEY=your_key
+```
+
+or:
+
+```bash
+export OPENALEX_CONTENT_API_KEY=your_key
+```
+
+Download priority:
+
+1. OpenAlex content API
+2. open-access PDF URL
+3. publisher landing page extraction
+4. user-authorized cookies / headers
+5. abstract-only review if full text is unavailable
+
+If the OpenAlex quota is exhausted or a paper has no OpenAlex content PDF, Paper-Reach automatically falls back to the default fetch logic.
+
+---
+
+## Cookie-Based Access
+
+Some publisher pages or institutional routes require a logged-in browser session. Paper-Reach does not bypass login or human verification. It can reuse user-authorized cookies or headers that you explicitly provide.
+
+Recommended flow:
+
+1. Log in with your browser.
+2. Open the target publisher page once.
+3. Export cookies with Cookie-Editor.
+4. Save them locally, for example `cookies.json`.
+5. Run Paper-Reach:
+
+```bash
+paper-reach run \
+  --input query.json \
+  --output result.json \
+  --bundle-dir ./runs/with_cookies \
+  --download-dir ./runs/with_cookies/downloads \
+  --cookie-file ./cookies.json \
+  --workers 8
+```
+
+You can also provide request headers:
+
+```bash
+paper-reach run \
+  --input query.json \
+  --output result.json \
+  --bundle-dir ./runs/with_auth \
+  --cookie-file ./cookies.json \
+  --header-file ./headers.json
+```
+
+Do not commit cookies or headers to GitHub.
+
+---
+
+## Design Philosophy
+
+Paper-Reach is scaffolding, not a heavyweight autonomous research system.
+
+The workflow is intentionally conservative:
+
+- title-only evidence is weak
+- abstract evidence is useful but provisional
+- full-text evidence is strongest
+- failed download should not break screening
+- weak evidence should become `ambiguous`, not overconfident `selected`
+
+The project keeps two output layers:
+
+- full JSON for agents, reproducibility, and downstream processing
+- compact JSON for human reading and manual screening
+
+This makes it useful both as:
+
+- a standalone literature screening CLI
+- a reusable skill backend for AI coding agents
+
+---
+
+## Repository Structure
 
 ```text
 paper-reach/
 ├─ README.md
-├─ README_EN.md
 ├─ AGENTS.md
 ├─ SKILL.md
 ├─ docs/
@@ -301,35 +345,36 @@ paper-reach/
 └─ tests/
 ```
 
-重点目录：
+Key areas:
 
-- `paper_reach/`
-  - CLI、workflow、ranking、fetchers、parsers、schemas
-- `skills/`
-  - paper-search、paper-reader、paper-ranker
-- `examples/`
-  - query 示例、auth 示例、agent recipes
-- `docs/`
-  - 安装、使用、架构、路线图、发布
+- `paper_reach/`: CLI, workflow, models, ranking, fetchers, parsers
+- `skills/`: paper-search, paper-reader, paper-ranker
+- `examples/`: example queries, auth examples, agent recipes
+- `docs/`: install, usage, architecture, roadmap, publishing
+- `scripts/`: skill sync and install checks
 
-## 文档
+---
 
-- [docs/install.md](docs/install.md)
-- [docs/usage.md](docs/usage.md)
-- [docs/architecture.md](docs/architecture.md)
-- [docs/agent-integration.md](docs/agent-integration.md)
-- [docs/browser-cookies.md](docs/browser-cookies.md)
-- [docs/publishing.md](docs/publishing.md)
-- [docs/roadmap.md](docs/roadmap.md)
+## Documentation
 
-## 贡献
+- [Install](docs/install.md)
+- [Usage](docs/usage.md)
+- [Architecture](docs/architecture.md)
+- [Agent integration](docs/agent-integration.md)
+- [Browser cookies](docs/browser-cookies.md)
+- [Publishing](docs/publishing.md)
+- [Roadmap](docs/roadmap.md)
 
-好的贡献通常会改善这些方向：
+---
 
-- 更好的检索后端
-- 更强的摘要或全文证据抽取
-- 更清晰的 ranking profile
-- 更好的离线支持
-- 更好的 Agent 宿主适配
+## Contributing
 
-项目应该保持保守、模块化、轻量和易扩展。
+Contributions are most useful when they improve:
+
+- screening quality
+- evidence extraction
+- backend extensibility
+- offline usability
+- agent integration
+
+The project should stay modular, conservative, and easy to extend.
