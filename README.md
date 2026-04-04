@@ -1,47 +1,54 @@
-# Paper-Reach
+<h1 align="center">Paper-Reach</h1>
 
-给你的 AI Agent 一套严谨的文献综述工作流。
+<p align="center">
+  <strong>Give your AI agent a rigorous literature review workflow</strong>
+</p>
 
-`Paper-Reach` 是一个面向 Codex、Claude Code、OpenClaw、Cursor 等智能编码代理的开源 Skill / CLI 项目，用来完成文献检索、摘要初筛、全文细筛、证据抽取和保守排序。
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10+-green.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+"></a>
+</p>
 
-它的重点不是“多搜几个来源”，而是让 agent 能够更可靠地判断一篇论文到底是不是符合你的纳入标准。
-
-[快速开始](#快速开始) · [English](#english) · [支持平台](#支持平台) · [设计理念](#设计理念)
+<p align="center">
+  <a href="#快速开始">快速开始</a> · <a href="#english">English</a> · <a href="#支持平台">支持平台</a> · <a href="#设计理念">设计理念</a>
+</p>
 
 ---
 
-## 为什么需要 Paper-Reach
+## 为什么需要 Paper-Reach？
 
-很多 agent 能搜到论文标题和摘要，但真正做文献综述时，经常会出问题：
+AI Agent 已经能帮你写代码、改文档、跑脚本，但你让它做一轮严谨的文献筛选时，通常会遇到这些问题：
 
-- 只看标题就说相关
-- 摘要证据很弱，却给出很强结论
-- 下载不到 PDF，整个流程就停住
-- 输出是巨大 JSON，人根本不想读
+- “标题看起来相关”被误当成“论文真的相关”
+- 摘要里没有证据，Agent 却直接给出强结论
+- 下载不了 PDF，整个流程就卡住
+- 结果 JSON 很完整，但人根本看不动
+- 每次换一个研究问题，都要重新写 prompt、重新定义筛选规则
 
-Paper-Reach 把这个过程拆成几个明确阶段：
+`Paper-Reach` 把文献综述拆成一个可复用的 Skill / CLI 工作流：
 
 1. 高召回检索候选论文
-2. 基于摘要做保守初筛
-3. 能下载全文就下载全文
-4. 用摘要或全文做细筛
-5. 输出完整版 JSON 和人能直接看的精炼版
+2. 用摘要做第一轮保守粗筛
+3. 对可获得全文的论文继续下载和细筛
+4. 用 profile-based ranking 做任务相关排序
+5. 同时输出完整 JSON 和精炼清单
 
-### 它适合什么场景
+这个项目不是一个重型自治研究系统，而是一个给 Agent 使用的文献筛选脚手架。
 
-| 场景 | Paper-Reach 怎么做 |
-|---|---|
-| 先拉 200-300 篇候选论文 | `screen --high-recall --retrieval-limit 200` |
-| 只想看最终标题和链接 | `summarize --format titles` |
-| 希望看到完整证据和原因 | 查看 `30_result_full.json` |
-| 下载不到全文 | 自动退回摘要级细筛，不会假装已读全文 |
-| 想让 Codex / OpenClaw 直接调用 | 使用 `SKILL.md` 和 `scripts/sync.sh` |
+## 核心能力
 
----
+- 高召回检索：OpenAlex、arXiv、本地 metadata、本地 PDF / TXT
+- 摘要级粗筛：明确区分 title-only、abstract-supported、full-text-supported
+- 全文获取：优先 OpenAlex Content API，失败后回退到开放 PDF、落地页解析、cookie/header 会话
+- 任务评分：支持 profile-based ranking，用硬门槛和加权维度定义不同研究任务
+- 结果打包：`run --bundle-dir` 一次输出 query、粗筛、下载、完整版、brief、titles
+- 精炼输出：`summarize --format titles|brief` 直接给人看的短清单
+- 多宿主适配：Codex / Claude Code / OpenClaw / Cursor 等能跑命令行的 Agent 都可以调用
+- 离线可用：没有互联网时，也可以用用户提供的 PDFs、DOI 列表、BibTeX、metadata 文件
 
 ## 快速开始
 
-安装：
+### 1. 安装 CLI
 
 ```bash
 python -m venv .venv
@@ -50,165 +57,13 @@ pip install -e .[dev]
 paper-reach doctor
 ```
 
-生成示例 query：
+### 2. 准备一个 query
 
 ```bash
 paper-reach example-query > query.json
 ```
 
-只做粗筛：
-
-```bash
-paper-reach screen \
-  --input query.json \
-  --output screen.json \
-  --high-recall \
-  --retrieval-limit 200
-```
-
-跑完整流程，并把每个阶段都输出到一个文件夹：
-
-```bash
-paper-reach run \
-  --input query.json \
-  --output result.json \
-  --bundle-dir ./runs/demo \
-  --high-recall \
-  --retrieval-limit 200 \
-  --workers 8
-```
-
-导出适合人看的简版：
-
-```bash
-paper-reach summarize \
-  --input result.json \
-  --output brief.json \
-  --format brief \
-  --top-k 20
-```
-
-`--bundle-dir` 会生成：
-
-```text
-runs/demo/
-├─ 00_query.json
-├─ 10_screen.json
-├─ 20_fetched_papers.json
-├─ 30_result_full.json
-├─ 40_result_brief.json
-├─ 50_result_titles.json
-├─ manifest.json
-└─ downloads/
-```
-
----
-
-## English
-
-Paper-Reach can be used fully in English.
-
-The CLI commands, JSON schema, skill files, and most documentation are English-friendly. The repository README is Chinese-first because the current primary users are Chinese-speaking agent builders, but the project itself is designed for international use.
-
-Typical English prompt to an agent:
-
-```text
-Use Paper-Reach to run a high-recall literature screening workflow. Keep decisions conservative, fetch full text when possible, and export both a full JSON result and a brief shortlist.
-```
-
----
-
-## 支持平台
-
-| 平台 / 来源 | 当前支持 | 增强方式 |
-|---|---|---|
-| OpenAlex | 元数据检索、摘要初筛、content API 下载 | 配置 `OPENALEX_API_KEY` |
-| arXiv | 检索与元数据获取 | 无需额外配置 |
-| 本地 PDF / TXT / JSON | 离线初筛和细筛 | 无需额外配置 |
-| 出版社落地页 | 尝试 OA 链接和页面解析 | 可提供 cookie / header |
-| Codex / OpenAI 风格宿主 | 可识别 `SKILL.md` 和 `agents/openai.yaml` | `bash scripts/sync.sh` |
-| Claude 风格宿主 | 支持 `.claude-plugin/plugin.json` | `bash scripts/sync.sh` |
-| Gemini 风格宿主 | 支持 `gemini-extension.json` | `bash scripts/sync.sh` |
-
-### 需要 Cookie 的平台怎么处理
-
-有些出版社或机构访问入口需要浏览器登录、机构授权或人机验证。
-
-推荐统一流程：
-
-**浏览器登录 -> Cookie-Editor 导出 Cookie -> 发给 Agent / 作为参数传给 Paper-Reach**
-
-具体做法：
-
-1. 用 Chrome 打开目标网站并登录
-2. 安装 Chrome 插件 `Cookie-Editor`
-3. 导出当前域名 cookie，保存为 `cookies.json`
-4. 运行：
-
-```bash
-paper-reach fetch-fulltext \
-  --input query.json \
-  --output review.json \
-  --download-dir ./downloads \
-  --cookie-file ./cookies.json
-```
-
-这样通常比让 agent 扫码、模拟登录或处理验证码更稳定。
-
-注意：
-
-- cookie 只在本地使用
-- cookie 不是必须项
-- 没有 cookie 时，系统仍然会自动退回到开放获取下载和摘要级细筛
-
-更多说明见：[docs/browser-cookies.md](docs/browser-cookies.md)
-
----
-
-## 设计理念
-
-Paper-Reach 不是一个很重的自治多智能体系统。
-
-它更像：
-
-- 一个可安装的文献筛选 Skill
-- 一个可复用的 Python CLI
-- 一个适合二次开发的 literature workflow scaffold
-
-核心设计原则：
-
-- **搜索很容易，筛选才难**
-  - 项目的价值不是更多来源，而是更好的筛选
-- **弱证据不能被说成强证据**
-  - 标题相关不能直接等于论文符合条件
-- **摘要证据和全文证据必须分层**
-  - 摘要只能支撑粗筛，全文才更适合强结论
-- **离线模式很重要**
-  - 没网、没有 PDF、只有本地 metadata 时也应该能用
-- **JSON first**
-  - 输出应当能继续被 agent、脚本和下游分析流程消费
-- **人也要能看**
-  - 所以保留 `brief` 和 `titles` 两种简版输出
-
----
-
-## 核心能力
-
-- 高召回文献检索与 query expansion
-- 摘要级保守初筛
-- 可选全文下载和全文细筛
-- OpenAlex content API 优先下载，失败自动回退
-- profile-based ranking，支持硬门槛和加权评分
-- `titles` / `brief` 两种人类可读导出
-- 完整 JSON 输出，适合 agent 和下游程序继续处理
-
-## 一个具体例子
-
-目标：
-
-> 找到“在中国使用静态人口或栅格人口做灾害、流感、传染病暴露评估”的论文，用来作为动态人口方法的基线对照。
-
-示例 query：
+也可以自己写一个更具体的 query，例如：
 
 ```json
 {
@@ -217,11 +72,9 @@ Paper-Reach 不是一个很重的自治多智能体系统。
     "China",
     "static population",
     "gridded population",
-    "census population",
     "population exposure",
     "population at risk",
     "disaster exposure",
-    "hazard exposure",
     "infectious disease exposure",
     "WorldPop",
     "LandScan",
@@ -236,8 +89,7 @@ Paper-Reach 不是一个很重的自治多智能体系统。
   "exclusion_criteria": [
     "study area outside China only",
     "not an exposure study",
-    "generic epidemiology without exposure modeling",
-    "dynamic mobility only without static population baseline"
+    "generic epidemiology without exposure modeling"
   ],
   "year_range": [2005, 2026],
   "max_results": 200,
@@ -248,43 +100,184 @@ Paper-Reach 不是一个很重的自治多智能体系统。
 }
 ```
 
-## OpenAlex 下载增强
+### 3. 跑完整流程
 
-如果配置了：
+```bash
+paper-reach run \
+  --input query.json \
+  --output result.json \
+  --bundle-dir ./runs/china_static_population \
+  --high-recall \
+  --retrieval-limit 200 \
+  --workers 8
+```
 
-- `OPENALEX_API_KEY`
-- 或 `OPENALEX_CONTENT_API_KEY`
+### 4. 查看精炼结果
 
-Paper-Reach 会优先尝试 OpenAlex 官方 content API：
+```bash
+paper-reach summarize \
+  --input result.json \
+  --output brief.json \
+  --format brief \
+  --top-k 20
+```
+
+`--bundle-dir` 会生成一个完整结果包：
+
+```text
+runs/china_static_population/
+├─ 00_query.json
+├─ 10_screen.json
+├─ 20_fetched_papers.json
+├─ 30_result_full.json
+├─ 40_result_brief.json
+├─ 50_result_titles.json
+├─ manifest.json
+└─ downloads/
+```
+
+## 需要 Cookie 的网站怎么处理？
+
+很多出版社或平台会要求登录、机构认证或浏览器验证。Paper-Reach 不会绕过验证，但支持复用你本地已经授权的浏览器会话。
+
+推荐流程统一为：
+
+```text
+浏览器登录目标网站 -> Cookie-Editor 导出 Cookie -> 发给 Agent / 保存成本地文件 -> paper-reach 使用 --cookie-file
+```
+
+建议使用 Chrome 插件 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm)：
+
+1. 在浏览器里登录目标网站
+2. 打开目标论文页面，确认浏览器能访问
+3. 用 Cookie-Editor 导出当前域名 cookie
+4. 保存为 `cookies.json`
+5. 运行：
+
+```bash
+paper-reach run \
+  --input query.json \
+  --output result.json \
+  --bundle-dir ./runs/my-topic \
+  --cookie-file ./cookies.json \
+  --workers 8
+```
+
+也可以同时提供 headers：
+
+```bash
+paper-reach run \
+  --input query.json \
+  --output result.json \
+  --bundle-dir ./runs/my-topic \
+  --cookie-file ./cookies.json \
+  --header-file ./headers.json
+```
+
+Cookie 只保存在你本地，不要提交到 GitHub，也不要发送给不可信的人。
+
+## English
+
+Paper-Reach is a skill-oriented literature review scaffold for AI coding agents.
+
+It helps agents:
+
+- retrieve candidate papers from OpenAlex, arXiv, or local files
+- screen papers conservatively using title and abstract evidence
+- fetch full text when available
+- review downloaded PDFs or fall back to abstract-level review
+- rank papers with task-specific profiles
+- export both full JSON and compact human-readable shortlists
+
+Minimal usage:
+
+```bash
+pip install -e .[dev]
+paper-reach example-query > query.json
+paper-reach run \
+  --input query.json \
+  --output result.json \
+  --bundle-dir ./runs/demo \
+  --high-recall \
+  --retrieval-limit 200 \
+  --workers 8
+paper-reach summarize --input result.json --output brief.json --format brief --top-k 20
+```
+
+Optional OpenAlex full-text access:
 
 ```bash
 export OPENALEX_API_KEY=your_key
 ```
 
-下载顺序：
+When configured, Paper-Reach tries the OpenAlex Content API first and falls back to normal open-access download strategies when quota or content is unavailable.
 
-1. OpenAlex content API
-2. 开放获取 PDF URL
-3. landing page 解析
-4. cookie / header 会话复用
-5. 摘要级 fallback
+## 支持平台
 
-这个 key 是可选增强，不是硬依赖。
+| 类型 | 默认可用 | 配置后增强 | 说明 |
+|------|---------|-----------|------|
+| OpenAlex metadata | 是 | OpenAlex Content API | 用于检索、摘要、venue、开放获取信息 |
+| OpenAlex PDF | 否 | 需要 `OPENALEX_API_KEY` | 优先下载 `content.openalex.org` PDF |
+| arXiv | 是 | 无 | 适合作为补充检索源 |
+| 本地 PDF / TXT | 是 | 无 | 离线模式可直接筛选用户提供文件 |
+| 本地 JSON metadata | 是 | 无 | 支持用户已有 DOI/title/metadata 列表 |
+| 出版社网页 | 部分 | Cookie / header | 可尝试开放 PDF、landing page、已授权会话 |
+| Codex / OpenAI 风格宿主 | 是 | `scripts/sync.sh` | 读取 `SKILL.md` 和 `agents/openai.yaml` |
+| Claude Code 风格宿主 | 是 | `scripts/sync.sh` | 读取 `.claude-plugin/plugin.json` |
+| OpenClaw / Cursor 等 | 是 | 需要能执行 CLI | Agent 读 Skill 后调用 `paper-reach` |
 
-## 多宿主 Skill 支持
+不知道怎么配？直接告诉 Agent：
 
-Paper-Reach 采用“一个核心执行层 + 多宿主包装层”的结构：
+```text
+帮我用 Paper-Reach 跑这个 query，先粗筛 200 篇，再下载能下载的全文，最后输出 top 20 brief 结果。
+```
 
-- `paper_reach/`
-  - CLI、workflow、ranking、fetchers、parsers
-- `SKILL.md`
-  - 宿主无关的 skill 入口
-- `agents/openai.yaml`
-  - Codex / OpenAI 风格元数据
-- `.claude-plugin/plugin.json`
-  - Claude 风格元数据
-- `gemini-extension.json`
-  - Gemini 风格扩展元数据
+如果需要 Cookie：
+
+```text
+我已经用 Cookie-Editor 导出了 cookies.json，请用 --cookie-file ./cookies.json 运行 Paper-Reach。
+```
+
+## 设计理念
+
+### Paper-Reach 是脚手架，不是重型框架
+
+这个项目不试图做一个庞大的自治多 Agent 系统。它只把文献筛选里最容易混乱的部分标准化：
+
+- 怎么检索
+- 怎么粗筛
+- 怎么下载全文
+- 怎么在证据不足时保守处理
+- 怎么输出人能看、Agent 也能继续用的结果
+
+### 证据强度必须分层
+
+Paper-Reach 默认区分：
+
+- title-only relevance
+- abstract-supported relevance
+- full-text-supported relevance
+
+标题相关不能直接进入最终结论。摘要相关可以进入候选池。只有摘要或全文支持足够强时，才应该进入最终名单。
+
+### 下载失败不是流程失败
+
+现实里很多论文没有开放 PDF，或者需要机构认证。Paper-Reach 的设计不是强行下载所有论文，而是：
+
+- 能下载就做全文细筛
+- 下载不了就做摘要级细筛
+- 明确记录 `fulltext_status`
+- 不把弱证据伪装成强证据
+
+### 同时服务 Agent 和人
+
+完整 JSON 用于复现、调试和后续 Agent 处理。`brief` / `titles` 输出用于人快速浏览。
+
+这就是为什么 Paper-Reach 同时保留：
+
+- `30_result_full.json`
+- `40_result_brief.json`
+- `50_result_titles.json`
 
 ## 仓库结构
 
@@ -303,6 +296,14 @@ paper-reach/
 └─ tests/
 ```
 
+关键目录：
+
+- `paper_reach/`：CLI、workflow、models、ranking、fetchers、parsers
+- `skills/`：paper-search、paper-reader、paper-ranker
+- `docs/`：安装、使用、架构、发布和路线图
+- `examples/`：query 示例、agent recipes、auth 示例
+- `scripts/`：skill 同步和安装检查脚本
+
 ## 文档
 
 - [docs/install.md](docs/install.md)
@@ -315,10 +316,12 @@ paper-reach/
 
 ## 贡献
 
-欢迎提交 issue 和 PR，尤其是这些方向：
+欢迎 PR 和 issue，尤其是这些方向：
 
-- 更强的筛选质量
-- 更好的全文证据抽取
-- 更多 scholarly backend
-- 更稳定的下载回退逻辑
-- 更顺滑的 agent 集成体验
+- 更好的 scholarly backend
+- 更稳定的全文下载回退策略
+- 更强的 abstract / full-text evidence extraction
+- 更合理的 ranking profile
+- 更好的 Codex / Claude / OpenClaw 兼容性
+
+项目原则：保持简单、模块化、证据导向，不把它做成笨重的自治研究平台。
