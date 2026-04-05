@@ -1,28 +1,14 @@
 <div align="center">
 
-<h1>👁️ Paper-Reach</h1>
+# 👁️ Paper-Reach
 
-<p><strong>给你的 AI Agent 一键装上严谨的文献筛选能力</strong></p>
+给你的 AI Agent 一键装上严谨的文献检索、筛选与全文细读能力
 
-<p>
-  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" />
-  <img src="https://img.shields.io/badge/python-3.9%2B-blue.svg" alt="Python 3.9+" />
-  <img src="https://img.shields.io/badge/tests-pytest-green.svg" alt="pytest" />
-  <img src="https://img.shields.io/badge/agent-skill-black.svg" alt="Agent Skill" />
-</p>
+MIT License · Python 3.8+ · Skill + CLI · JSON-first
 
-<p>
-  <a href="#快速开始">快速开始</a> ·
-  <a href="README.en.md">English</a> ·
-  <a href="#支持平台">支持平台</a> ·
-  <a href="#设计理念">设计理念</a>
-</p>
+[快速开始](#快速开始) · [English](README_EN.md) · [支持平台](#支持平台) · [设计理念](#设计理念)
 
 </div>
-
-`Paper-Reach` 是一个面向 AI Agent 的开源 Skill + CLI，用于文献检索、摘要初筛、全文细筛、证据提取和保守排序。
-
-它适用于 Codex、Claude Code、OpenClaw、Cursor 等智能编码代理，也可以单独作为一个 Python CLI 使用。
 
 ---
 
