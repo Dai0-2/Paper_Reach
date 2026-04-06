@@ -1,12 +1,12 @@
 <div align="center">
 
-# 👁️ Paper-Reach
+# 📚 Paper-Reach
 
-给你的 AI Agent 一键装上严谨的文献检索、筛选与全文细读能力
+给你的 AI Agent 一键装上严谨文献筛选能力
 
-MIT License · Python 3.8+ · Skill + CLI · JSON-first
+MIT License · Python 3.8+ · Agent Skill · OpenAlex Ready
 
-[快速开始](#快速开始) · [English](README_EN.md) · [支持平台](#支持平台) · [设计理念](#设计理念)
+[快速开始](#快速开始) · [English](#english) · [支持平台](#支持平台) · [设计理念](#设计理念)
 
 </div>
 
@@ -112,6 +112,98 @@ runs/demo/
 > git pull
 > pip install -e .[dev]
 > ```
+
+---
+
+## English
+
+Paper-Reach gives your AI agent a rigorous literature review workflow.
+
+It is an open-source Skill + CLI for literature search, abstract screening, full-text review, evidence extraction, and conservative ranking.
+
+It is designed for Codex, Claude Code, OpenClaw, Cursor, and similar coding agents, while also working as a standalone Python command-line tool.
+
+### Why It Exists
+
+Searching papers is easy. Screening them rigorously is hard.
+
+Most AI agents can collect titles and abstracts, but they often:
+
+- overclaim relevance from titles
+- treat abstract-only evidence as if it were full-text evidence
+- fail when PDFs cannot be downloaded
+- return giant JSON outputs that are hard for humans to inspect
+
+Paper-Reach keeps the workflow explicit:
+
+1. retrieve a broad candidate pool
+2. screen conservatively using titles and abstracts
+3. fetch full text when available
+4. review with stronger evidence
+5. export both full machine-readable JSON and compact human-readable shortlists
+
+### Quick Start
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .[dev]
+paper-reach doctor
+paper-reach example-query > query.json
+```
+
+Run the full workflow:
+
+```bash
+paper-reach run \
+  --input query.json \
+  --output result.json \
+  --bundle-dir ./runs/demo \
+  --high-recall \
+  --retrieval-limit 200 \
+  --workers 8
+```
+
+Export a compact shortlist:
+
+```bash
+paper-reach summarize \
+  --input result.json \
+  --output brief.json \
+  --format brief \
+  --top-k 20
+```
+
+### Supported Sources And Hosts
+
+- OpenAlex metadata search and optional content API PDF download
+- arXiv search
+- local PDFs, TXT files, and JSON metadata
+- publisher landing pages with best-effort open-access fallback
+- optional cookie / header session reuse for logged-in scholarly platforms
+- Codex / OpenAI-style skill hosts
+- Claude-style skill hosts
+- Gemini-style extension metadata
+
+Typical message to an agent:
+
+```text
+Install and use Paper-Reach from this repository. Run a high-recall literature screening workflow, keep the output conservative, and export both a full JSON result and a brief shortlist.
+```
+
+### Design Philosophy
+
+Paper-Reach is not a giant autonomous research platform. It is a practical literature workflow scaffold.
+
+The core principle is simple:
+
+- title relevance is weak evidence
+- abstract evidence is useful but provisional
+- full-text evidence is stronger
+- unavailable PDFs should not break the whole workflow
+- final outputs should be usable by both agents and humans
+
+---
 
 ## 支持平台
 
@@ -308,6 +400,13 @@ paper-reach/
 - [docs/browser-cookies.md](docs/browser-cookies.md)
 - [docs/publishing.md](docs/publishing.md)
 - [docs/roadmap.md](docs/roadmap.md)
+
+## 后续还值得继续优化的地方
+
+- 安装体验还能更一键化
+- 首页还能更强调结果导向
+- Cookie 配置可以再做得更“照着就能用”
+- shortlist 质量还值得继续提升
 
 ## Contributing
 
