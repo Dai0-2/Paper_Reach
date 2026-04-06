@@ -2,54 +2,52 @@
 
 # 👁️ Paper-Reach
 
-给你的 AI Agent 一键装上严谨文献筛选能力
+给你的 AI Agent 一套严谨的文献检索与筛选工作流
 
-MIT License · Python 3.8+ · Agent Skill · Literature Workflow
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Python 3.8%2B](https://img.shields.io/badge/python-3.8%2B-blue.svg)](pyproject.toml)
+[![GitHub Stars](https://img.shields.io/github/stars/Dai0-2/paper_reach?style=social)](https://github.com/Dai0-2/paper_reach)
+
+`Paper-Reach` 是一个面向 AI Agent 的开源 Skill + CLI，用于文献检索、摘要初筛、全文细筛、证据提取和保守排序。
 
 [快速开始](#快速开始) · [English](README_EN.md) · [支持平台](#支持平台) · [设计理念](#设计理念)
 
 </div>
 
-`Paper-Reach` 是一个面向 AI Agent 的开源 Skill + CLI，用于文献检索、摘要初筛、全文细筛、证据提取和保守排序。
-
-它适用于 Codex、Claude Code、OpenClaw、Cursor 等智能编码代理，也可以单独作为一个 Python CLI 使用。
-
 ---
 
-## 为什么是 Paper-Reach？
+## 为什么需要 Paper-Reach
 
-AI Agent 已经能写代码、改文档、管仓库了，但一旦进入真实文献综述流程，通常就会出问题：
+很多 agent 能搜到论文标题和摘要，但真正做文献综述时，经常会出问题：
 
-- “帮我找这个主题真正符合条件的论文。” -> 很容易只看标题就过度判断
-- “帮我确认哪些论文真的用了这个数据或监督信号。” -> 仅靠摘要证据往往不够
-- “帮我把论文下下来再确认方法。” -> PDF 获取经常失败，流程容易中断
-- “给我一个我真正能看的 shortlist。” -> 最后只吐一大坨 JSON，人根本不想翻
+- 只看标题就说相关
+- 摘要证据很弱，却给出很强结论
+- 下载不到 PDF，整个流程就停住
+- 输出是巨大 JSON，人根本不想读
 
-难点不在搜索，而在于 **基于证据的筛选**。
+Paper-Reach 把这个过程拆成几个明确阶段：
 
-Paper-Reach 把这件事拆成可复用的步骤：
+1. 高召回检索候选论文
+2. 基于摘要做保守初筛
+3. 能下载全文就下载全文
+4. 用摘要或全文做细筛
+5. 输出完整版 JSON 和人能直接看的精炼版
 
-1. 先检索一个较大的候选池
-2. 在摘要层做保守初筛
-3. 能拿到全文时继续下载
-4. 用更强的证据做细筛
-5. 同时导出给机器和给人看的结果
+### 它适合什么场景
 
-### 开始之前
-
-| 项目 | 含义 |
+| 场景 | Paper-Reach 怎么做 |
 |---|---|
-| **默认保守** | 只看标题的相关性绝不会被当成强证据 |
-| **Agent 友好** | 可单独作为 CLI 用，也可作为可复用 skill bundle 用 |
-| **优雅回退** | 全文下不下来，流程也不会直接废掉 |
-| **人类可读** | 支持 `brief` 和 `titles` 导出，不只是大 JSON |
-| **易扩展** | 搜索后端、解析器、ranking profile、下载逻辑都可插拔 |
+| 先拉 200-300 篇候选论文 | `screen --high-recall --retrieval-limit 200` |
+| 只想看最终标题和链接 | `summarize --format titles` |
+| 希望看到完整证据和原因 | 查看 `30_result_full.json` |
+| 下载不到全文 | 自动退回摘要级细筛，不会假装已读全文 |
+| 想让 Codex / OpenClaw 直接调用 | 使用 `SKILL.md` 和 `scripts/sync.sh` |
 
 ---
 
 ## 快速开始
 
-本地安装：
+安装：
 
 ```bash
 python -m venv .venv
@@ -58,13 +56,13 @@ pip install -e .[dev]
 paper-reach doctor
 ```
 
-生成一个示例 query：
+生成示例 query：
 
 ```bash
 paper-reach example-query > query.json
 ```
 
-跑一次高召回初筛：
+只做粗筛：
 
 ```bash
 paper-reach screen \
@@ -74,7 +72,7 @@ paper-reach screen \
   --retrieval-limit 200
 ```
 
-跑完整流程，并保存所有中间结果：
+跑完整流程，并把每个阶段都输出到一个文件夹：
 
 ```bash
 paper-reach run \
@@ -86,7 +84,7 @@ paper-reach run \
   --workers 8
 ```
 
-导出适合人工查看的 shortlist：
+导出适合人工阅读的精简版：
 
 ```bash
 paper-reach summarize \
@@ -96,7 +94,7 @@ paper-reach summarize \
   --top-k 20
 ```
 
-`bundle-dir` 目录大概长这样：
+输出目录大概长这样：
 
 ```text
 runs/demo/
@@ -110,7 +108,7 @@ runs/demo/
 └─ downloads/
 ```
 
-> 如果已经安装过，更新通常就是：
+> 已经安装过的话，更新通常就是：
 >
 > ```bash
 > git pull
@@ -133,11 +131,9 @@ runs/demo/
 
 ### 需要 Cookie 的学术平台怎么处理
 
-有些学术平台需要登录状态，或者依赖机构浏览器会话。
+有些学术平台需要登录状态，或者依赖机构浏览器会话。对这类平台，最实用的方式是：
 
-对这类平台，最实用的方式是：
-
-**浏览器登录 -> 用 Cookie-Editor 导出 Cookie -> 交给 Agent / Paper-Reach 使用**
+**浏览器登录 -> 用 Cookie-Editor 导出 Cookie -> 发给 Agent / Paper-Reach 使用**
 
 推荐流程：
 
@@ -169,11 +165,9 @@ Cookie 处理原则：
 
 ## 设计理念
 
-Paper-Reach 不是一个重型自治研究框架。
+Paper-Reach 不是一个重型自治研究框架，而是一个实用的文献工作流 starter repo / scaffolding。
 
-它是一个实用的文献工作流 starter repo / scaffolding。
-
-它的核心设计原则是：
+核心设计原则：
 
 - **搜索不难，筛选更难**
   - 真正的价值在于筛得更准，而不是源更多

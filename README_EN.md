@@ -1,14 +1,14 @@
 <div align="center">
 
-# 🔎 Paper-Reach
+# 👁️ Paper-Reach
 
 Give your AI agent a rigorous literature review workflow
 
-An open-source skill + CLI for literature search, abstract screening, full-text review, evidence extraction, and conservative ranking.
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Python 3.8%2B](https://img.shields.io/badge/python-3.8%2B-blue.svg)](pyproject.toml)
+[![GitHub Stars](https://img.shields.io/github/stars/Dai0-2/paper_reach?style=social)](https://github.com/Dai0-2/paper_reach)
 
-MIT License · Python 3.8+ · Agent Skill · OpenAlex Ready
-
-[Quick Start](#quick-start) · [中文](README.md) · [Supported Platforms](#supported-platforms) · [Design Philosophy](#design-philosophy)
+[Quick Start](#quick-start) · [Chinese](README.md) · [Supported Platforms](#supported-platforms) · [Design Philosophy](#design-philosophy)
 
 </div>
 
@@ -16,38 +16,30 @@ MIT License · Python 3.8+ · Agent Skill · OpenAlex Ready
 
 ## Why Paper-Reach?
 
-AI agents can already write code, edit docs, and manage repositories. But once you ask them to do a real literature review, they usually break down:
+`Paper-Reach` is an open-source skill + CLI for literature retrieval, abstract screening, full-text review, evidence extraction, and conservative ranking.
 
-- "Find papers on this topic and keep only the ones that actually match my criteria." -> They overclaim from titles.
-- "Tell me which papers really use this dataset or supervision signal." -> Abstract evidence is often too weak.
-- "Download the paper and confirm the method." -> PDF access fails, and the workflow stalls.
-- "Give me a shortlist I can actually read." -> The output is a giant JSON blob.
+It is designed for AI coding agents such as Codex, Claude Code, OpenClaw, and Cursor, while also working as a standalone Python CLI.
 
-The hard part is not search. The hard part is evidence-based screening.
+The point is not “search more sources.” The point is “screen papers better with evidence.”
 
-Paper-Reach turns that into a repeatable workflow:
+Many agents can already find paper titles and abstracts. But when asked to do a real literature review, they tend to break down:
+
+- they overclaim from titles
+- abstract evidence is often too weak
+- PDF access fails and stalls the workflow
+- the final output is too large for humans to inspect
+
+Paper-Reach turns this into a reusable workflow:
 
 1. retrieve a large candidate pool
 2. screen conservatively at abstract level
 3. fetch full text when possible
-4. review with stronger evidence
-5. export both machine-readable and human-readable outputs
-
-### Before You Use It
-
-| Item | What it means |
-|---|---|
-| Conservative by default | Title-only relevance is never treated as strong evidence |
-| Agent-friendly | Works as both a CLI and a reusable skill bundle |
-| Graceful fallback | If full text cannot be downloaded, the workflow still remains useful |
-| Human-readable output | You get `brief` and `titles` exports, not just giant JSON |
-| Extensible | Search backends, parsers, ranking profiles, and fetch logic are pluggable |
-
----
+4. review using abstract or full-text evidence
+5. export both full JSON and compact human-readable outputs
 
 ## Quick Start
 
-Install locally:
+Install:
 
 ```bash
 python -m venv .venv
@@ -62,7 +54,7 @@ Generate a sample query:
 paper-reach example-query > query.json
 ```
 
-Run a high-recall screening pass:
+Run abstract-level screening:
 
 ```bash
 paper-reach screen \
@@ -72,7 +64,7 @@ paper-reach screen \
   --retrieval-limit 200
 ```
 
-Run the full workflow and save all intermediate outputs:
+Run the full workflow and save every stage:
 
 ```bash
 paper-reach run \
@@ -84,7 +76,7 @@ paper-reach run \
   --workers 8
 ```
 
-Export a human-readable shortlist:
+Export a shortlist:
 
 ```bash
 paper-reach summarize \
@@ -94,33 +86,31 @@ paper-reach summarize \
   --top-k 20
 ```
 
----
-
 ## Supported Platforms
 
 | Platform | Works now | Better with configuration | How to enable |
 |---|---|---|---|
-| OpenAlex | Metadata retrieval, abstract screening | Official content API PDF download | Set `OPENALEX_API_KEY` |
-| arXiv | Search and metadata retrieval | PDF / local review | No extra setup |
-| Local PDFs / TXT / JSON | Offline screening and review | Stronger local evidence extraction | No extra setup |
-| Publisher landing pages | Best-effort OA fallback | Session reuse for gated content | Provide cookies / headers |
-| Codex / OpenAI-style hosts | Skill discovery + CLI use | Bundle install | `bash scripts/sync.sh` |
-| Claude-style hosts | Skill discovery + CLI use | Bundle install | `bash scripts/sync.sh` |
-| Gemini-style hosts | Extension metadata included | Bundle install | `bash scripts/sync.sh` |
+| **OpenAlex** | Metadata retrieval, abstract screening | Official content API PDF download | Set `OPENALEX_API_KEY` |
+| **arXiv** | Search and metadata retrieval | PDF / local review | No extra setup |
+| **Local PDFs / TXT / JSON** | Offline screening and review | Stronger local evidence extraction | No extra setup |
+| **Publisher landing pages** | Best-effort OA fallback | Session reuse for gated content | Provide cookies / headers |
+| **Codex / OpenAI-style hosts** | Skill discovery + CLI use | Bundle install | `bash scripts/sync.sh` |
+| **Claude-style hosts** | Skill discovery + CLI use | Bundle install | `bash scripts/sync.sh` |
+| **Gemini-style hosts** | Extension metadata included | Bundle install | `bash scripts/sync.sh` |
 
 ### Cookie-Based Access for Scholarly Platforms
 
 Some scholarly platforms require login or an institution-backed browser session.
 
-For platforms that need cookies, the most practical setup is:
+For these platforms, the most practical setup is:
 
-browser login -> Cookie-Editor export -> give cookies to the agent -> run Paper-Reach
+**browser login -> Cookie-Editor export -> send cookies to the agent -> run Paper-Reach**
 
-Recommended approach:
+Recommended flow:
 
 - log into the publisher site in Chrome
 - use the Chrome extension `Cookie-Editor` to export cookies
-- pass the cookie file to Paper-Reach
+- pass the cookie file to Paper-Reach with `--cookie-file`
 
 Example:
 
@@ -132,9 +122,7 @@ paper-reach fetch-fulltext \
   --cookie-file ./cookies.json
 ```
 
-This is usually simpler and more reliable than trying to automate login or browser verification flows.
-
----
+This is usually simpler and more reliable than trying to automate login or verification flows.
 
 ## Design Philosophy
 
@@ -142,47 +130,27 @@ Paper-Reach is not a heavyweight autonomous research framework.
 
 It is a practical starter repo for literature workflow scaffolding.
 
-The main design principles are:
+Core principles:
 
-- Search is easy, screening is hard
-- Weak evidence stays weak
-- Abstract and full text are different evidence levels
-- Offline mode matters
+- search is easy, screening is hard
+- weak evidence stays weak
+- abstract and full text are different evidence levels
+- offline mode matters
 - JSON first
-- Human review still matters
+- human review still matters
 
 ### What Paper-Reach Is
 
 - a reusable literature workflow for AI agents
 - a Python CLI
 - a multi-host skill bundle
-- a starter scaffold for literature review and research-gap analysis
+- a starter scaffold for literature review and gap analysis
 
 ### What Paper-Reach Is Not
 
 - a giant autonomous multi-agent system
 - a promise that every paper can always be downloaded
 - a black-box ranking engine with hidden logic
-
----
-
-## OpenAlex-First Full-Text Fetching
-
-If `OPENALEX_API_KEY` or `OPENALEX_CONTENT_API_KEY` is configured, Paper-Reach tries the OpenAlex content API first:
-
-```bash
-export OPENALEX_API_KEY=your_key
-```
-
-Download priority:
-
-1. OpenAlex content API
-2. open-access PDF URL
-3. landing page extraction
-4. cookie / header session reuse
-5. abstract-only fallback
-
-This means the OpenAlex API key is optional, not required.
 
 ## Documentation
 
